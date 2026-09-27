@@ -16,6 +16,8 @@ zlib 1.3.2 の圧縮・展開、チェックサム、gzip ファイル API を�
 | Linux/GCC | `prod/lib/libzlib.so` | `LIBS += zlib` |
 | Windows/MSVC | `prod/lib/libzlib.dll` と import library `libzlib.lib` | `LIBS += zlib` |
 
+Table: 環境別の zlib 共有ライブラリとリンク指定
+
 静的な実ライブラリは生成しません。  
 OS にインストールされた `libz` や `zlib1.dll` の置き換えは行いません。  
 公開 API と型は upstream の `<zlib.h>` と `<zconf.h>` を使います。  
@@ -73,6 +75,8 @@ Windows ではモック本体と利用側の `ZLIB_DLL` を未定義にします
 | `inflateInit`、`inflateInit2`、`inflateBackInit` | 末尾に `_` が付く実関数 |
 | `gzprintf` | `gzvprintf` (書式文字列と `va_list`) |
 | `gzgetc` | 実関数 `gzgetc`。モック ヘッダー内で同名マクロを解除 |
+
+Table: zlib マクロ呼び出しとモック対象関数の対応一覧
 
 テスト対象ソースが通常の `<zlib.h>` でコンパイルされた場合、`gzgetc` マクロは公開構造体を直接読み書きすることがあります。  
 関数モックだけでその処理全体を差し替えることはできません。  
