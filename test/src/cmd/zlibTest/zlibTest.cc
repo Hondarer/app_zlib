@@ -14,6 +14,7 @@ class zlibTest : public Test
     }
 };
 
+// 空データ・バイナリ・反復データを含むメモリー上の圧縮・展開ラウンドトリップが成功することの確認
 TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
 {
     // Arrange
@@ -22,6 +23,8 @@ TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
 
     // Pre-Assert
 
+    // Act
+    // Assert
     for (const auto &source : inputs)
     {
         const Bytef empty = 0;
@@ -36,13 +39,11 @@ TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
         std::vector<Bytef> restored(source.size() + 1);
         uLongf restored_size = static_cast<uLongf>(restored.size());
 
-        // Act
         const int compress_ret =
             compress(compressed.data(), &compressed_size, input, input_size); // [手順] - メモリーを圧縮する。
         const int restore_ret = uncompress(restored.data(), &restored_size, compressed.data(),
                                            compressed_size); // [手順] - 圧縮結果を展開する。
 
-        // Assert
         ASSERT_EQ(Z_OK, compress_ret); // [確認_正常系] - 圧縮に成功すること。
         ASSERT_EQ(Z_OK, restore_ret);  // [確認_正常系] - 展開に成功すること。
         restored.resize(restored_size);
@@ -50,6 +51,7 @@ TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
     }
 }
 
+// 不正な圧縮形式および出力領域不足が正しく検出されることの確認
 TEST_F(zlibTest, invalid_data_and_short_buffer)
 {
     // Arrange
@@ -62,14 +64,19 @@ TEST_F(zlibTest, invalid_data_and_short_buffer)
 
     // Act
     const int invalid_ret = uncompress(output, &size, invalid, sizeof(invalid)); // [手順] - 不正データを展開する。
-    const int short_ret =
-        compress(output, &short_size, invalid, sizeof(invalid)); // [手順] - 出力領域を 1 バイトに制限する。
 
     // Assert
     EXPECT_EQ(Z_DATA_ERROR, invalid_ret); // [確認_異常系] - 不正な圧縮形式を検出すること。
-    EXPECT_EQ(Z_BUF_ERROR, short_ret);    // [確認_異常系] - 出力領域不足を検出すること。
+
+    // Act_2
+    const int short_ret =
+        compress(output, &short_size, invalid, sizeof(invalid)); // [手順] - 出力領域を 1 バイトに制限して圧縮する。
+
+    // Assert_2
+    EXPECT_EQ(Z_BUF_ERROR, short_ret); // [確認_異常系] - 出力領域不足を検出すること。
 }
 
+// 既知の入力に対して CRC-32 および Adler-32 チェックサムが正しく計算されることの確認
 TEST_F(zlibTest, checksum_known_vector)
 {
     // Arrange
@@ -86,6 +93,7 @@ TEST_F(zlibTest, checksum_known_vector)
     EXPECT_EQ(0x091e01deUL, adler); // [確認_正常系] - Adler-32 の既知の値と一致すること。
 }
 
+// gzip ファイルの圧縮書き込みおよび展開読み込みのラウンドトリップが成功することの確認
 TEST_F(zlibTest, gzip_file_roundtrip)
 {
     // Arrange
@@ -96,12 +104,12 @@ TEST_F(zlibTest, gzip_file_roundtrip)
 
     // Act
     gzFile writer = gzopen("zlib_roundtrip_test.gz", "wb"); // [手順] - gzip 出力を開く。
-    ASSERT_NE(nullptr, writer);                             // [確認_正常系] - 出力ファイルが開くこと。
+    ASSERT_NE(nullptr, writer);
     const int written =
         gzwrite(writer, source.data(), static_cast<unsigned>(source.size())); // [手順] - バイナリを圧縮して書き込む。
     const int write_close_ret = gzclose(writer);
     gzFile reader = gzopen("zlib_roundtrip_test.gz", "rb"); // [手順] - gzip 入力を開く。
-    ASSERT_NE(nullptr, reader);                             // [確認_正常系] - 入力ファイルが開くこと。
+    ASSERT_NE(nullptr, reader);
     const int read_size =
         gzread(reader, restored.data(), static_cast<unsigned>(restored.size())); // [手順] - データを展開して読み込む。
     const int read_close_ret = gzclose(reader);
@@ -114,6 +122,7 @@ TEST_F(zlibTest, gzip_file_roundtrip)
     EXPECT_EQ(source, restored);      // [確認_正常系] - ファイルの往復で元データを復元できたこと。
 }
 
+// size_t 版 API による圧縮・展開のラウンドトリップが成功することの確認
 TEST_F(zlibTest, size_t_api_roundtrip)
 {
     // Arrange
@@ -137,10 +146,11 @@ TEST_F(zlibTest, size_t_api_roundtrip)
     EXPECT_THAT(restored, ElementsAreArray(source)); // [確認_正常系] - 復元内容が一致すること。
 }
 
+// 展開先バッファー不足時に Z_BUF_ERROR が返されることの確認
 TEST_F(zlibTest, decompression_buffer_too_small)
 {
     // Arrange
-    const Bytef source[] = "restored data exceeds one byte";
+    const Bytef source[] = "restored data exceeds one byte"; // [状態] - 展開先より大きいデータを用意する。
     Bytef compressed[128] = {};
     uLongf compressed_size = sizeof(compressed);
     ASSERT_EQ(Z_OK, compress(compressed, &compressed_size, source,

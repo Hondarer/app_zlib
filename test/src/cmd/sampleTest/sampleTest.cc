@@ -1,6 +1,7 @@
 #include <testfw.h>
 #include <mock_zlib.h>
 
+// 圧縮・展開のラウンドトリップが正常に成功することの確認
 TEST(sampleTest, successful_roundtrip)
 {
     // Arrange
@@ -14,6 +15,7 @@ TEST(sampleTest, successful_roundtrip)
     EXPECT_EQ(0, ret); // [確認_正常系] - 復元結果が一致し成功終了すること。
 }
 
+// 圧縮エラー発生時にサンプルがエラー終了することの確認
 TEST(sampleTest, compression_error)
 {
     // Arrange
@@ -32,6 +34,7 @@ TEST(sampleTest, compression_error)
     EXPECT_EQ(1, ret); // [確認_異常系] - エラー終了すること。
 }
 
+// 展開エラー発生時にサンプルがエラー終了することの確認
 TEST(sampleTest, decompression_error)
 {
     // Arrange
@@ -49,6 +52,7 @@ TEST(sampleTest, decompression_error)
     EXPECT_EQ(1, ret); // [確認_異常系] - エラー終了すること。
 }
 
+// 復元データが不一致の場合にエラー終了することの確認
 TEST(sampleTest, restored_data_mismatch)
 {
     // Arrange

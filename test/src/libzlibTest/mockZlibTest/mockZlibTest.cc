@@ -12,6 +12,7 @@ class mockZlibTest : public Test
     }
 };
 
+// モック未生成時に zlib 実関数へ正しく委譲されることの確認
 TEST_F(mockZlibTest, delegates_without_mock)
 {
     // Arrange
@@ -27,6 +28,7 @@ TEST_F(mockZlibTest, delegates_without_mock)
     EXPECT_STREQ(ZLIB_VERSION, zlibVersion()); // [確認_正常系] - 同梱した版を読み込んだこと。
 }
 
+// モック生成後も未指定の呼び出しが実関数へ委譲されることの確認
 TEST_F(mockZlibTest, delegates_unspecified_calls)
 {
     // Arrange
@@ -42,6 +44,7 @@ TEST_F(mockZlibTest, delegates_unspecified_calls)
     EXPECT_EQ(0xcbf43926UL, crc); // [確認_正常系] - モック生成後も実関数を呼べること。
 }
 
+// 初期化マクロ経由でモックのエラー戻り値を上書きできることの確認
 TEST_F(mockZlibTest, overrides_error_and_init_macro)
 {
     // Arrange
@@ -60,6 +63,7 @@ TEST_F(mockZlibTest, overrides_error_and_init_macro)
     EXPECT_EQ(Z_MEM_ERROR, ret); // [確認_異常系] - モックのエラーが呼び出し元へ戻ること。
 }
 
+// gzprintf の可変長引数が gzvprintf へ正しく渡されることの確認
 TEST_F(mockZlibTest, printf_passes_variadic_arguments)
 {
     // Arrange
@@ -82,6 +86,7 @@ TEST_F(mockZlibTest, printf_passes_variadic_arguments)
     EXPECT_STREQ("value:42", output); // [確認_正常系] - 引数の内容を保持していること。
 }
 
+// gzprintf が実ファイルに対して正常に書式化出力できることの確認
 TEST_F(mockZlibTest, printf_delegates_to_real_file)
 {
     // Arrange
@@ -90,12 +95,12 @@ TEST_F(mockZlibTest, printf_delegates_to_real_file)
     // Pre-Assert
 
     // Act
-    gzFile writer = gzopen("zlib_printf_test.gz", "wb");    // [手順] - 実ファイルを開く。
-    ASSERT_NE(nullptr, writer);                             // [確認_正常系] - 出力を開けること。
+    gzFile writer = gzopen("zlib_printf_test.gz", "wb"); // [手順] - 実ファイルを開く。
+    ASSERT_NE(nullptr, writer);
     const int ret = gzprintf(writer, "%s:%d", "value", 42); // [手順] - 可変長引数を実関数へ委譲する。
     const int close_ret = gzclose(writer);
-    gzFile reader = gzopen("zlib_printf_test.gz", "rb");
-    ASSERT_NE(nullptr, reader); // [確認_正常系] - 入力を開けること。
+    gzFile reader = gzopen("zlib_printf_test.gz", "rb"); // [手順] - 実ファイルを読み込む。
+    ASSERT_NE(nullptr, reader);
     const int size = gzread(reader, output, sizeof(output));
     const int read_close_ret = gzclose(reader);
 
