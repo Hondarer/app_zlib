@@ -24,7 +24,7 @@ class ExtractPackageTest(unittest.TestCase):
 
     def run_extract(self):
         return subprocess.run(
-            [sys.executable, str(APP / "bin/extract_package.py"),
+            [sys.executable, str(APP / "bin_internal/extract_package.py"),
              "--app-dir", str(self.app), "--makefw-home", str(MAKEFW)],
             capture_output=True, text=True, encoding="utf-8", check=False)
 
