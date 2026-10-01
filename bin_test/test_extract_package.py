@@ -81,7 +81,10 @@ class ExtractPackageTest(unittest.TestCase):
     def test_patch_change_triggers_reapplication(self):
         self.assert_success()
         patch = self.app / "patches/0001-gcc-public-visibility.patch"
-        patch.write_text(patch.read_text().replace("ZLIB_API_VISIBILITY", "ZLIB_TEST_VISIBILITY"))
+        # パッチは LF で比較されるため、Windows でも改行を CRLF へ変換せずに書き戻す。
+        patch.write_text(
+            patch.read_text(encoding="utf-8").replace("ZLIB_API_VISIBILITY", "ZLIB_TEST_VISIBILITY"),
+            encoding="utf-8", newline="\n")
         self.assert_success()
         self.assertIn("ZLIB_TEST_VISIBILITY", (self.app / "prod/include/zconf.h").read_text())
 
