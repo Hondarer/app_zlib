@@ -32,7 +32,7 @@ Windows の DLL 本体にだけ `ZLIB_DLL` を指定します。
 ```sh
 make -C app/zlib
 make -C app/zlib test
-python3 app/zlib/bin_internal/test_extract_package.py
+python3 app/zlib/bin_test/test_extract_package.py
 ```
 
 `packages/` の公式アーカイブから、公開ヘッダーを `prod/include/`、本体と内部ヘッダーを `prod/libsrc/zlib/` に自動展開します。  
