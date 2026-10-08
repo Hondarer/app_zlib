@@ -44,10 +44,10 @@ TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
         const int restore_ret = uncompress(restored.data(), &restored_size, compressed.data(),
                                            compressed_size); // [手順] - 圧縮結果を展開する。
 
-        ASSERT_EQ(Z_OK, compress_ret); // [確認_正常系] - 圧縮に成功すること。
-        ASSERT_EQ(Z_OK, restore_ret);  // [確認_正常系] - 展開に成功すること。
+        ASSERT_EQ(Z_OK, compress_ret); // [確認_正常系 回数=3] - 圧縮に成功すること。
+        ASSERT_EQ(Z_OK, restore_ret);  // [確認_正常系 回数=3] - 展開に成功すること。
         restored.resize(restored_size);
-        EXPECT_EQ(source, restored); // [確認_正常系] - 空・バイナリを含めて元データと一致すること。
+        EXPECT_EQ(source, restored); // [確認_正常系 回数=3] - 空・バイナリを含めて元データと一致すること。
     }
 }
 
@@ -105,11 +105,13 @@ TEST_F(zlibTest, gzip_file_roundtrip)
     // Act
     gzFile writer = gzopen("zlib_roundtrip_test.gz", "wb"); // [手順] - gzip 出力を開く。
     ASSERT_NE(nullptr, writer);
+    // [確認_正常系] - `nullptr` と `writer` が異なること。
     const int written =
         gzwrite(writer, source.data(), static_cast<unsigned>(source.size())); // [手順] - バイナリを圧縮して書き込む。
     const int write_close_ret = gzclose(writer);
     gzFile reader = gzopen("zlib_roundtrip_test.gz", "rb"); // [手順] - gzip 入力を開く。
     ASSERT_NE(nullptr, reader);
+    // [確認_正常系] - `nullptr` と `reader` が異なること。
     const int read_size =
         gzread(reader, restored.data(), static_cast<unsigned>(restored.size())); // [手順] - データを展開して読み込む。
     const int read_close_ret = gzclose(reader);

@@ -97,10 +97,12 @@ TEST_F(mockZlibTest, printf_delegates_to_real_file)
     // Act
     gzFile writer = gzopen("zlib_printf_test.gz", "wb"); // [手順] - 実ファイルを開く。
     ASSERT_NE(nullptr, writer);
+    // [確認_正常系] - `nullptr` と `writer` が異なること。
     const int ret = gzprintf(writer, "%s:%d", "value", 42); // [手順] - 可変長引数を実関数へ委譲する。
     const int close_ret = gzclose(writer);
     gzFile reader = gzopen("zlib_printf_test.gz", "rb"); // [手順] - 実ファイルを読み込む。
     ASSERT_NE(nullptr, reader);
+    // [確認_正常系] - `nullptr` と `reader` が異なること。
     const int size = gzread(reader, output, sizeof(output));
     const int read_close_ret = gzclose(reader);
 
