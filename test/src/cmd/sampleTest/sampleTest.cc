@@ -19,7 +19,7 @@ TEST(sampleTest, successful_roundtrip)
 TEST(sampleTest, compression_error)
 {
     // Arrange
-    NiceMock<Mock_zlib> mock_zlib;
+    NiceMock<Mock_zlib> mock_zlib; // [状態] - 既定動作の Mock_zlib を生成する。
 
     // Pre-Assert
     EXPECT_CALL(mock_zlib, compress2(_, _, _, _, Z_BEST_COMPRESSION))
@@ -38,7 +38,7 @@ TEST(sampleTest, compression_error)
 TEST(sampleTest, decompression_error)
 {
     // Arrange
-    NiceMock<Mock_zlib> mock_zlib;
+    NiceMock<Mock_zlib> mock_zlib; // [状態] - 既定動作の Mock_zlib を生成する。
 
     // Pre-Assert
     EXPECT_CALL(mock_zlib, uncompress(_, _, _, _))
@@ -56,7 +56,7 @@ TEST(sampleTest, decompression_error)
 TEST(sampleTest, restored_data_mismatch)
 {
     // Arrange
-    NiceMock<Mock_zlib> mock_zlib;
+    NiceMock<Mock_zlib> mock_zlib; // [状態] - 既定動作の Mock_zlib を生成する。
 
     // Pre-Assert
     EXPECT_CALL(mock_zlib, uncompress(_, _, _, _))

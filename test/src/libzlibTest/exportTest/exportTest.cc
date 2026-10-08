@@ -17,7 +17,7 @@
 #undef MOCK_ZLIB_RET
 
 using expected_gzprintf_fn = int (*)(gzFile, const char *, ...);
-static_assert(std::is_same<decltype(&gzprintf), expected_gzprintf_fn>::value, "gzprintf signature mismatch");
+static_assert(std::is_same<decltype(&gzprintf), expected_gzprintf_fn>::value, "gzprintf のシグネチャが不一致です");
 
 static const char *const kExpectedExportNames[] = {
 #define MOCK_ZLIB_RET(return_type, name, parameters, arguments, matchers)  #name,

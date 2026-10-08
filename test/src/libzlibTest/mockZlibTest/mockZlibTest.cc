@@ -35,8 +35,8 @@ TEST_F(mockZlibTest, delegates_without_mock)
 TEST_F(mockZlibTest, delegates_unspecified_calls)
 {
     // Arrange
-    NiceMock<Mock_zlib> mock_zlib; // [状態] - 個別の動作を指定せずモックを生成する。
-    const Bytef source[] = "123456789";
+    NiceMock<Mock_zlib> mock_zlib;      // [状態] - 個別の動作を指定せずモックを生成する。
+    const Bytef source[] = "123456789"; // [状態] - 既知の入力を用意する。
 
     // Pre-Assert
 
@@ -52,8 +52,8 @@ TEST_F(mockZlibTest, delegates_unspecified_calls)
 TEST_F(mockZlibTest, overrides_error_and_init_macro)
 {
     // Arrange
-    NiceMock<Mock_zlib> mock_zlib;
-    z_stream stream = {}; // [状態] - マクロが渡すストリームを用意する。
+    NiceMock<Mock_zlib> mock_zlib; // [状態] - 既定動作の Mock_zlib を生成する。
+    z_stream stream = {};          // [状態] - マクロが渡すストリームを用意する。
 
     // Pre-Assert
     EXPECT_CALL(mock_zlib, deflateInit_(&stream, Z_DEFAULT_COMPRESSION, StrEq(ZLIB_VERSION), sizeof(z_stream)))
@@ -73,7 +73,7 @@ TEST_F(mockZlibTest, printf_passes_variadic_arguments)
 {
     // Arrange
     NiceMock<Mock_zlib> mock_zlib; // [状態] - 実ファイルを使わず書式化を観測する。
-    char output[32] = {};
+    char output[32] = {};          // [状態] - 書式化結果の格納先を用意する。
 
     // Pre-Assert
     EXPECT_CALL(mock_zlib, gzvprintf(nullptr, StrEq("%s:%d"), _))
