@@ -48,6 +48,7 @@ TEST(exportTest, zlib_symbols_match_api_table)
     std::set<std::string> actual = testing::getActualExportNames(path); // [手順] - libzlib のエクスポート名を取得する。
 
     // Assert
+    // [サブ手順参照 名前=testing.expectExportNamesMatch]
     testing::expectExportNamesMatch(expected,
-                                    actual); // [確認_正常系 回数=2] - libzlib のエクスポートに不足や想定外がないこと。
+                                    actual); // libzlib のエクスポートに不足や想定外がないこと。
 }

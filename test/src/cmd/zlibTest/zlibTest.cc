@@ -8,10 +8,12 @@
 class zlibTest : public Test
 {
   protected:
+    // [サブ手順 名前=zlibTest.TearDown]
     void TearDown() override
     {
         std::remove("zlib_roundtrip_test.gz");
     }
+    // [サブ手順終了]
 };
 
 // 空データ・バイナリ・反復データを含むメモリー上の圧縮・展開ラウンドトリップが成功することの確認
@@ -50,6 +52,7 @@ TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
         EXPECT_EQ(source, restored); // [確認_正常系 回数=3] - 空・バイナリを含めて元データと一致すること。
     }
 }
+// [サブ手順参照 名前=zlibTest.TearDown]
 
 // 不正な圧縮形式および出力領域不足が正しく検出されることの確認
 TEST_F(zlibTest, invalid_data_and_short_buffer)
@@ -75,6 +78,7 @@ TEST_F(zlibTest, invalid_data_and_short_buffer)
     // Assert_2
     EXPECT_EQ(Z_BUF_ERROR, short_ret); // [確認_異常系] - 出力領域不足を検出すること。
 }
+// [サブ手順参照 名前=zlibTest.TearDown]
 
 // 既知の入力に対して CRC-32 および Adler-32 チェックサムが正しく計算されることの確認
 TEST_F(zlibTest, checksum_known_vector)
@@ -92,6 +96,7 @@ TEST_F(zlibTest, checksum_known_vector)
     EXPECT_EQ(0xcbf43926UL, crc);   // [確認_正常系] - CRC-32 の既知の値と一致すること。
     EXPECT_EQ(0x091e01deUL, adler); // [確認_正常系] - Adler-32 の既知の値と一致すること。
 }
+// [サブ手順参照 名前=zlibTest.TearDown]
 
 // gzip ファイルの圧縮書き込みおよび展開読み込みのラウンドトリップが成功することの確認
 TEST_F(zlibTest, gzip_file_roundtrip)
@@ -123,6 +128,7 @@ TEST_F(zlibTest, gzip_file_roundtrip)
     EXPECT_EQ(Z_OK, read_close_ret);  // [確認_正常系] - 読み込みを終了できたこと。
     EXPECT_EQ(source, restored);      // [確認_正常系] - ファイルの往復で元データを復元できたこと。
 }
+// [サブ手順参照 名前=zlibTest.TearDown]
 
 // size_t 版 API による圧縮・展開のラウンドトリップが成功することの確認
 TEST_F(zlibTest, size_t_api_roundtrip)
@@ -147,6 +153,7 @@ TEST_F(zlibTest, size_t_api_roundtrip)
     EXPECT_EQ(sizeof(source), restored_size);        // [確認_正常系] - 復元サイズが一致すること。
     EXPECT_THAT(restored, ElementsAreArray(source)); // [確認_正常系] - 復元内容が一致すること。
 }
+// [サブ手順参照 名前=zlibTest.TearDown]
 
 // 展開先バッファー不足時に Z_BUF_ERROR が返されることの確認
 TEST_F(zlibTest, decompression_buffer_too_small)
@@ -169,3 +176,4 @@ TEST_F(zlibTest, decompression_buffer_too_small)
     // Assert
     EXPECT_EQ(Z_BUF_ERROR, ret); // [確認_異常系] - 展開先の不足を検出すること。
 }
+// [サブ手順参照 名前=zlibTest.TearDown]

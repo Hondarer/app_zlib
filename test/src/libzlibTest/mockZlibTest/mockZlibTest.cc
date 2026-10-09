@@ -6,10 +6,12 @@
 class mockZlibTest : public Test
 {
   protected:
+    // [サブ手順 名前=mockZlibTest.TearDown]
     void TearDown() override
     {
         std::remove("zlib_printf_test.gz");
     }
+    // [サブ手順終了]
 };
 
 // モック未生成時に zlib 実関数へ正しく委譲されることの確認
@@ -27,6 +29,7 @@ TEST_F(mockZlibTest, delegates_without_mock)
     EXPECT_EQ(0xcbf43926UL, crc);              // [確認_正常系] - 実ライブラリの計算結果であること。
     EXPECT_STREQ(ZLIB_VERSION, zlibVersion()); // [確認_正常系] - 同梱した版を読み込んだこと。
 }
+// [サブ手順参照 名前=mockZlibTest.TearDown]
 
 // モック生成後も未指定の呼び出しが実関数へ委譲されることの確認
 TEST_F(mockZlibTest, delegates_unspecified_calls)
@@ -43,6 +46,7 @@ TEST_F(mockZlibTest, delegates_unspecified_calls)
     // Assert
     EXPECT_EQ(0xcbf43926UL, crc); // [確認_正常系] - モック生成後も実関数を呼べること。
 }
+// [サブ手順参照 名前=mockZlibTest.TearDown]
 
 // 初期化マクロ経由でモックのエラー戻り値を上書きできることの確認
 TEST_F(mockZlibTest, overrides_error_and_init_macro)
@@ -62,6 +66,7 @@ TEST_F(mockZlibTest, overrides_error_and_init_macro)
     // Assert
     EXPECT_EQ(Z_MEM_ERROR, ret); // [確認_異常系] - モックのエラーが呼び出し元へ戻ること。
 }
+// [サブ手順参照 名前=mockZlibTest.TearDown]
 
 // gzprintf の可変長引数が gzvprintf へ正しく渡されることの確認
 TEST_F(mockZlibTest, printf_passes_variadic_arguments)
@@ -85,6 +90,7 @@ TEST_F(mockZlibTest, printf_passes_variadic_arguments)
     EXPECT_EQ(8, ret);                // [確認_正常系] - 書式化後の長さを返すこと。
     EXPECT_STREQ("value:42", output); // [確認_正常系] - 引数の内容を保持していること。
 }
+// [サブ手順参照 名前=mockZlibTest.TearDown]
 
 // gzprintf が実ファイルに対して正常に書式化出力できることの確認
 TEST_F(mockZlibTest, printf_delegates_to_real_file)
@@ -113,3 +119,4 @@ TEST_F(mockZlibTest, printf_delegates_to_real_file)
     EXPECT_EQ(8, size);               // [確認_正常系] - 書き込んだ長さを読み出せること。
     EXPECT_STREQ("value:42", output); // [確認_正常系] - 実ファイルに書式化結果が残ること。
 }
+// [サブ手順参照 名前=mockZlibTest.TearDown]
