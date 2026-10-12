@@ -24,10 +24,14 @@ TEST_F(mockZlibTest, delegates_without_mock)
 
     // Act
     const uLong crc = crc32(0, source, 9); // [手順] - 実関数へ委譲する。
+    const char *actual_ret_version = zlibVersion(); // [手順] - 版文字列を取得する。
 
     // Assert
-    EXPECT_EQ(0xcbf43926UL, crc);              // [確認_正常系] - 実ライブラリの計算結果であること。
-    EXPECT_STREQ(ZLIB_VERSION, zlibVersion()); // [確認_正常系] - 同梱した版を読み込んだこと。
+    EXPECT_EQ(
+        0xcbf43926UL,
+        crc); // [確認_正常系] - crc32() の戻り値が 0xcbf43926UL であること。(入力 "123456789" の CRC-32 であることの確認)
+    EXPECT_STREQ(ZLIB_VERSION,
+                 actual_ret_version); // [確認_正常系] - zlibVersion() の戻り値が ZLIB_VERSION であること。
 }
 // [サブ手順参照 名前=mockZlibTest.TearDown]
 
@@ -44,7 +48,9 @@ TEST_F(mockZlibTest, delegates_unspecified_calls)
     const uLong crc = crc32(0, source, 9); // [手順] - 既定動作を通して実関数へ委譲する。
 
     // Assert
-    EXPECT_EQ(0xcbf43926UL, crc); // [確認_正常系] - モック生成後も実関数を呼べること。
+    EXPECT_EQ(
+        0xcbf43926UL,
+        crc); // [確認_正常系] - crc32() の戻り値が 0xcbf43926UL であること。(入力 "123456789" の CRC-32 であることの確認)
 }
 // [サブ手順参照 名前=mockZlibTest.TearDown]
 
@@ -57,14 +63,15 @@ TEST_F(mockZlibTest, overrides_error_and_init_macro)
 
     // Pre-Assert
     EXPECT_CALL(mock_zlib, deflateInit_(&stream, Z_DEFAULT_COMPRESSION, StrEq(ZLIB_VERSION), sizeof(z_stream)))
-        .WillOnce(Return(Z_MEM_ERROR)); // [Pre-Assert確認_異常系] - 初期化マクロの展開先が所定の引数で呼ばれること。
-                                        // [Pre-Assert手順] - メモリー不足を返す。
+        .WillOnce(Return(
+            Z_MEM_ERROR)); // [Pre-Assert確認_異常系] - deflateInit_() が &stream、Z_DEFAULT_COMPRESSION、ZLIB_VERSION と等しい文字列、sizeof(z_stream) を指定して 1 回呼び出されること。
+                           // [Pre-Assert手順] - メモリー不足を返す。
 
     // Act
     const int ret = deflateInit(&stream, Z_DEFAULT_COMPRESSION); // [手順] - 公開マクロから呼び出す。
 
     // Assert
-    EXPECT_EQ(Z_MEM_ERROR, ret); // [確認_異常系] - モックのエラーが呼び出し元へ戻ること。
+    EXPECT_EQ(Z_MEM_ERROR, ret); // [確認_異常系] - deflateInit() の戻り値が Z_MEM_ERROR であること。
 }
 // [サブ手順参照 名前=mockZlibTest.TearDown]
 
@@ -81,14 +88,16 @@ TEST_F(mockZlibTest, printf_passes_variadic_arguments)
             [&output](gzFile, const char *format, va_list args)
             {
                 return std::vsnprintf(output, sizeof(output), format, args);
-            }); // [Pre-Assert確認_正常系] - 可変長引数が gzvprintf へ渡ること。
+            }); // [Pre-Assert確認_正常系] - gzvprintf() が nullptr、"%s:%d" と等しい文字列を指定して 1 回呼び出されること。
+                // [Pre-Assert手順] - 書式と可変長引数で output を書き、書き込んだ長さを返す。
 
     // Act
     const int ret = gzprintf(nullptr, "%s:%d", "value", 42); // [手順] - 異なる型の可変長引数を渡す。
 
     // Assert
-    EXPECT_EQ(8, ret);                // [確認_正常系] - 書式化後の長さを返すこと。
-    EXPECT_STREQ("value:42", output); // [確認_正常系] - 引数の内容を保持していること。
+    EXPECT_EQ(8, ret); // [確認_正常系] - gzprintf() の戻り値が 8 であること。("value:42" の文字数であることの確認)
+    EXPECT_STREQ("value:42",
+                 output); // [確認_正常系] - output が "value:42" であること。(渡した書式と引数の結果であることの確認)
 }
 // [サブ手順参照 名前=mockZlibTest.TearDown]
 
@@ -103,20 +112,21 @@ TEST_F(mockZlibTest, printf_delegates_to_real_file)
     // Act
     gzFile writer = gzopen("zlib_printf_test.gz", "wb"); // [手順] - 実ファイルを開く。
     ASSERT_NE(nullptr, writer);
-    // [確認_正常系] - `nullptr` と `writer` が異なること。
+    // [状態確認] - 書き込み用の gzopen() の戻り値が nullptr 以外であること。
     const int ret = gzprintf(writer, "%s:%d", "value", 42); // [手順] - 可変長引数を実関数へ委譲する。
     const int close_ret = gzclose(writer);
     gzFile reader = gzopen("zlib_printf_test.gz", "rb"); // [手順] - 実ファイルを読み込む。
     ASSERT_NE(nullptr, reader);
-    // [確認_正常系] - `nullptr` と `reader` が異なること。
+    // [状態確認] - 読み込み用の gzopen() の戻り値が nullptr 以外であること。
     const int size = gzread(reader, output, sizeof(output));
     const int read_close_ret = gzclose(reader);
 
     // Assert
-    EXPECT_EQ(8, ret);                // [確認_正常系] - 書式化結果の長さを返すこと。
-    EXPECT_EQ(Z_OK, close_ret);       // [確認_正常系] - gzip 出力を完了できること。
-    EXPECT_EQ(Z_OK, read_close_ret);  // [確認_正常系] - gzip 入力を終了できること。
-    EXPECT_EQ(8, size);               // [確認_正常系] - 書き込んだ長さを読み出せること。
-    EXPECT_STREQ("value:42", output); // [確認_正常系] - 実ファイルに書式化結果が残ること。
+    EXPECT_EQ(8, ret); // [確認_正常系] - gzprintf() の戻り値が 8 であること。("value:42" の文字数であることの確認)
+    EXPECT_EQ(Z_OK, close_ret);      // [確認_正常系] - 書き込み後の gzclose() の戻り値が Z_OK であること。
+    EXPECT_EQ(Z_OK, read_close_ret); // [確認_正常系] - 読み込み後の gzclose() の戻り値が Z_OK であること。
+    EXPECT_EQ(8, size); // [確認_正常系] - gzread() の戻り値が 8 であること。("value:42" の文字数であることの確認)
+    EXPECT_STREQ("value:42",
+                 output); // [確認_正常系] - output が "value:42" であること。(実ファイルに書式化結果が残ったことの確認)
 }
 // [サブ手順参照 名前=mockZlibTest.TearDown]

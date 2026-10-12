@@ -22,11 +22,11 @@ TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
     // Arrange
     const std::vector<std::vector<Bytef>> inputs = {
         {}, {0, 1, 0, 127, 128, 255}, std::vector<Bytef>(4096, 65)}; // [状態] - 空・バイナリ・反復データを用意する。
+    std::vector<std::vector<Bytef>> actual_restored;
 
     // Pre-Assert
 
     // Act
-    // Assert
     for (const auto &source : inputs)
     {
         const Bytef empty = 0;
@@ -46,10 +46,17 @@ TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
         const int restore_ret = uncompress(restored.data(), &restored_size, compressed.data(),
                                            compressed_size); // [手順] - 圧縮結果を展開する。
 
-        ASSERT_EQ(Z_OK, compress_ret); // [確認_正常系 回数=3] - 圧縮に成功すること。
-        ASSERT_EQ(Z_OK, restore_ret);  // [確認_正常系 回数=3] - 展開に成功すること。
+        ASSERT_EQ(Z_OK, compress_ret); // [確認_正常系 回数=3] - compress() の戻り値が Z_OK であること。
+        ASSERT_EQ(Z_OK, restore_ret);  // [確認_正常系 回数=3] - uncompress() の戻り値が Z_OK であること。
         restored.resize(restored_size);
-        EXPECT_EQ(source, restored); // [確認_正常系 回数=3] - 空・バイナリを含めて元データと一致すること。
+        actual_restored.push_back(restored);
+    }
+
+    // Assert
+    for (size_t i = 0; i < inputs.size(); ++i)
+    {
+        EXPECT_EQ(inputs[i],
+                  actual_restored[i]); // [確認_正常系 回数=3] - actual_restored[i] が inputs[i] と一致すること。
     }
 }
 // [サブ手順参照 名前=zlibTest.TearDown]
@@ -69,14 +76,17 @@ TEST_F(zlibTest, invalid_data_and_short_buffer)
     const int invalid_ret = uncompress(output, &size, invalid, sizeof(invalid)); // [手順] - 不正データを展開する。
 
     // Assert
-    EXPECT_EQ(Z_DATA_ERROR, invalid_ret); // [確認_異常系] - 不正な圧縮形式を検出すること。
+    EXPECT_EQ(Z_DATA_ERROR,
+              invalid_ret); // [確認_異常系] - 不正データに対する uncompress() の戻り値が Z_DATA_ERROR であること。
 
     // Act_2
     const int short_ret =
         compress(output, &short_size, invalid, sizeof(invalid)); // [手順] - 出力領域を 1 バイトに制限して圧縮する。
 
     // Assert_2
-    EXPECT_EQ(Z_BUF_ERROR, short_ret); // [確認_異常系] - 出力領域不足を検出すること。
+    EXPECT_EQ(
+        Z_BUF_ERROR,
+        short_ret); // [確認_異常系] - 出力領域を 1 バイトに制限した compress() の戻り値が Z_BUF_ERROR であること。
 }
 // [サブ手順参照 名前=zlibTest.TearDown]
 
@@ -93,8 +103,8 @@ TEST_F(zlibTest, checksum_known_vector)
     const uLong adler = adler32(1, source, 9); // [手順] - Adler-32 を計算する。
 
     // Assert
-    EXPECT_EQ(0xcbf43926UL, crc);   // [確認_正常系] - CRC-32 の既知の値と一致すること。
-    EXPECT_EQ(0x091e01deUL, adler); // [確認_正常系] - Adler-32 の既知の値と一致すること。
+    EXPECT_EQ(0xcbf43926UL, crc);   // [確認_正常系] - crc32() の戻り値が 0xcbf43926UL であること。
+    EXPECT_EQ(0x091e01deUL, adler); // [確認_正常系] - adler32() の戻り値が 0x091e01deUL であること。
 }
 // [サブ手順参照 名前=zlibTest.TearDown]
 
@@ -110,23 +120,23 @@ TEST_F(zlibTest, gzip_file_roundtrip)
     // Act
     gzFile writer = gzopen("zlib_roundtrip_test.gz", "wb"); // [手順] - gzip 出力を開く。
     ASSERT_NE(nullptr, writer);
-    // [確認_正常系] - `nullptr` と `writer` が異なること。
+    // [確認_正常系] - 書き込み用の gzopen() の戻り値が nullptr 以外であること。
     const int written =
         gzwrite(writer, source.data(), static_cast<unsigned>(source.size())); // [手順] - バイナリを圧縮して書き込む。
     const int write_close_ret = gzclose(writer);
     gzFile reader = gzopen("zlib_roundtrip_test.gz", "rb"); // [手順] - gzip 入力を開く。
     ASSERT_NE(nullptr, reader);
-    // [確認_正常系] - `nullptr` と `reader` が異なること。
+    // [確認_正常系] - 読み込み用の gzopen() の戻り値が nullptr 以外であること。
     const int read_size =
         gzread(reader, restored.data(), static_cast<unsigned>(restored.size())); // [手順] - データを展開して読み込む。
     const int read_close_ret = gzclose(reader);
 
     // Assert
-    EXPECT_EQ(6, written);            // [確認_正常系] - 全バイトを書き込んだこと。
-    EXPECT_EQ(6, read_size);          // [確認_正常系] - 全バイトを読み込んだこと。
-    EXPECT_EQ(Z_OK, write_close_ret); // [確認_正常系] - 書き込みを完了できたこと。
-    EXPECT_EQ(Z_OK, read_close_ret);  // [確認_正常系] - 読み込みを終了できたこと。
-    EXPECT_EQ(source, restored);      // [確認_正常系] - ファイルの往復で元データを復元できたこと。
+    EXPECT_EQ(6, written);            // [確認_正常系] - gzwrite() の戻り値が 6 であること。
+    EXPECT_EQ(6, read_size);          // [確認_正常系] - gzread() の戻り値が 6 であること。
+    EXPECT_EQ(Z_OK, write_close_ret); // [確認_正常系] - 書き込み後の gzclose() の戻り値が Z_OK であること。
+    EXPECT_EQ(Z_OK, read_close_ret);  // [確認_正常系] - 読み込み後の gzclose() の戻り値が Z_OK であること。
+    EXPECT_EQ(source, restored);      // [確認_正常系] - restored が source と一致すること。
 }
 // [サブ手順参照 名前=zlibTest.TearDown]
 
@@ -148,10 +158,11 @@ TEST_F(zlibTest, size_t_api_roundtrip)
         uncompress_z(restored, &restored_size, output, output_size); // [手順] - size_t 版で展開する。
 
     // Assert
-    EXPECT_EQ(Z_OK, compress_ret);                   // [確認_正常系] - 圧縮に成功すること。
-    EXPECT_EQ(Z_OK, restore_ret);                    // [確認_正常系] - 展開に成功すること。
-    EXPECT_EQ(sizeof(source), restored_size);        // [確認_正常系] - 復元サイズが一致すること。
-    EXPECT_THAT(restored, ElementsAreArray(source)); // [確認_正常系] - 復元内容が一致すること。
+    EXPECT_EQ(Z_OK, compress_ret);            // [確認_正常系] - compress_z() の戻り値が Z_OK であること。
+    EXPECT_EQ(Z_OK, restore_ret);             // [確認_正常系] - uncompress_z() の戻り値が Z_OK であること。
+    EXPECT_EQ(sizeof(source), restored_size); // [確認_正常系] - restored_size が sizeof(source) と一致すること。
+    EXPECT_THAT(restored,
+                ElementsAreArray(source)); // [確認_正常系] - restored の各要素が source の各要素と順に一致すること。
 }
 // [サブ手順参照 名前=zlibTest.TearDown]
 
@@ -163,7 +174,7 @@ TEST_F(zlibTest, decompression_buffer_too_small)
     Bytef compressed[128] = {};
     uLongf compressed_size = sizeof(compressed);
     ASSERT_EQ(Z_OK, compress(compressed, &compressed_size, source,
-                             sizeof(source))); // [状態確認] - 展開対象の圧縮データを準備できたこと。
+                             sizeof(source))); // [状態確認] - compress() の戻り値が Z_OK であること。
     Bytef restored[1] = {};
     uLongf restored_size = sizeof(restored); // [状態] - 展開先を 1 バイトに制限する。
 
@@ -174,6 +185,6 @@ TEST_F(zlibTest, decompression_buffer_too_small)
         uncompress(restored, &restored_size, compressed, compressed_size); // [手順] - 狭いバッファーへ展開する。
 
     // Assert
-    EXPECT_EQ(Z_BUF_ERROR, ret); // [確認_異常系] - 展開先の不足を検出すること。
+    EXPECT_EQ(Z_BUF_ERROR, ret); // [確認_異常系] - uncompress() の戻り値が Z_BUF_ERROR であること。
 }
 // [サブ手順参照 名前=zlibTest.TearDown]
