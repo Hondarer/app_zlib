@@ -43,7 +43,7 @@ class Mock_zlib
 #undef MOCK_ZLIB_RET
 
     Mock_zlib();
-    ~Mock_zlib();
+    virtual ~Mock_zlib();
 };
 
 extern Mock_zlib *mock_zlib_instance;
