@@ -16,7 +16,7 @@ class zlibTest : public Test
     // [サブ手順終了]
 };
 
-// 空データ・バイナリ・反復データを含むメモリー上の圧縮・展開ラウンドトリップが成功することの確認
+// 空データ・バイナリ・反復データを含むメモリ上の圧縮・展開ラウンド トリップが成功することの確認
 TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
 {
     // Arrange
@@ -42,7 +42,7 @@ TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
         uLongf restored_size = static_cast<uLongf>(restored.size());
 
         const int compress_ret =
-            compress(compressed.data(), &compressed_size, input, input_size); // [手順] - メモリーを圧縮する。
+            compress(compressed.data(), &compressed_size, input, input_size); // [手順] - メモリを圧縮する。
         const int restore_ret = uncompress(restored.data(), &restored_size, compressed.data(),
                                            compressed_size); // [手順] - 圧縮結果を展開する。
 
@@ -108,7 +108,7 @@ TEST_F(zlibTest, checksum_known_vector)
 }
 // [サブ手順参照 名前=zlibTest.TearDown]
 
-// gzip ファイルの圧縮書き込みおよび展開読み込みのラウンドトリップが成功することの確認
+// gzip ファイルの圧縮書き込みおよび展開読み込みのラウンド トリップが成功することの確認
 TEST_F(zlibTest, gzip_file_roundtrip)
 {
     // Arrange
@@ -140,7 +140,7 @@ TEST_F(zlibTest, gzip_file_roundtrip)
 }
 // [サブ手順参照 名前=zlibTest.TearDown]
 
-// size_t 版 API による圧縮・展開のラウンドトリップが成功することの確認
+// size_t 版 API による圧縮・展開のラウンド トリップが成功することの確認
 TEST_F(zlibTest, size_t_api_roundtrip)
 {
     // Arrange

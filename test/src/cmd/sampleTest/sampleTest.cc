@@ -1,7 +1,7 @@
 #include <testfw.h>
 #include <mock_zlib.h>
 
-// 圧縮・展開のラウンドトリップが正常に成功することの確認
+// 圧縮・展開のラウンド トリップが正常に成功することの確認
 TEST(sampleTest, successful_roundtrip)
 {
     // Arrange
@@ -25,7 +25,7 @@ TEST(sampleTest, compression_error)
     EXPECT_CALL(mock_zlib, compress2(_, _, _, _, Z_BEST_COMPRESSION))
         .WillOnce(Return(
             Z_MEM_ERROR)); // [Pre-Assert確認_異常系] - compress2() が Z_BEST_COMPRESSION を指定して 1 回呼び出されること。
-                           // [Pre-Assert手順] - メモリー不足を返す。
+                           // [Pre-Assert手順] - メモリ不足を返す。
     EXPECT_CALL(mock_zlib, uncompress(_, _, _, _))
         .Times(0); // [Pre-Assert確認_異常系] - uncompress() が呼び出されないこと。(圧縮失敗後は展開しないことの確認)
 

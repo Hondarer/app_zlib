@@ -65,7 +65,7 @@ TEST_F(mockZlibTest, overrides_error_and_init_macro)
     EXPECT_CALL(mock_zlib, deflateInit_(&stream, Z_DEFAULT_COMPRESSION, StrEq(ZLIB_VERSION), sizeof(z_stream)))
         .WillOnce(Return(
             Z_MEM_ERROR)); // [Pre-Assert確認_異常系] - deflateInit_() が &stream、Z_DEFAULT_COMPRESSION、ZLIB_VERSION と等しい文字列、sizeof(z_stream) を指定して 1 回呼び出されること。
-                           // [Pre-Assert手順] - メモリー不足を返す。
+                           // [Pre-Assert手順] - メモリ不足を返す。
 
     // Act
     const int ret = deflateInit(&stream, Z_DEFAULT_COMPRESSION); // [手順] - 公開マクロから呼び出す。
