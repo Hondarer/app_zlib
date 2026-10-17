@@ -41,10 +41,10 @@ TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
         std::vector<Bytef> restored(source.size() + 1);
         uLongf restored_size = static_cast<uLongf>(restored.size());
 
-        const int compress_ret =
-            compress(compressed.data(), &compressed_size, input, input_size); // [手順] - メモリを圧縮する。
+        const int compress_ret = compress(compressed.data(), &compressed_size, input,
+                                          input_size); // [手順] - 圧縮対象のメモリを指定して compress() を呼び出す。
         const int restore_ret = uncompress(restored.data(), &restored_size, compressed.data(),
-                                           compressed_size); // [手順] - 圧縮結果を展開する。
+                                           compressed_size); // [手順] - 圧縮結果を指定して uncompress() を呼び出す。
 
         ASSERT_EQ(Z_OK, compress_ret); // [確認_正常系 回数=3] - compress() の戻り値が Z_OK であること。
         ASSERT_EQ(Z_OK, restore_ret);  // [確認_正常系 回数=3] - uncompress() の戻り値が Z_OK であること。
@@ -73,15 +73,16 @@ TEST_F(zlibTest, invalid_data_and_short_buffer)
     // Pre-Assert
 
     // Act
-    const int invalid_ret = uncompress(output, &size, invalid, sizeof(invalid)); // [手順] - 不正データを展開する。
+    const int invalid_ret =
+        uncompress(output, &size, invalid, sizeof(invalid)); // [手順] - 不正データを指定して uncompress() を呼び出す。
 
     // Assert
     EXPECT_EQ(Z_DATA_ERROR,
               invalid_ret); // [確認_異常系] - 不正データに対する uncompress() の戻り値が Z_DATA_ERROR であること。
 
     // Act_2
-    const int short_ret =
-        compress(output, &short_size, invalid, sizeof(invalid)); // [手順] - 出力領域を 1 バイトに制限して圧縮する。
+    const int short_ret = compress(output, &short_size, invalid,
+                                   sizeof(invalid)); // [手順] - 出力領域を 1 バイトに制限して compress() を呼び出す。
 
     // Assert_2
     EXPECT_EQ(
@@ -99,8 +100,8 @@ TEST_F(zlibTest, checksum_known_vector)
     // Pre-Assert
 
     // Act
-    const uLong crc = crc32(0, source, 9);     // [手順] - CRC-32 を計算する。
-    const uLong adler = adler32(1, source, 9); // [手順] - Adler-32 を計算する。
+    const uLong crc = crc32(0, source, 9);     // [手順] - "123456789" を指定して crc32() を呼び出す。
+    const uLong adler = adler32(1, source, 9); // [手順] - "123456789" を指定して adler32() を呼び出す。
 
     // Assert
     EXPECT_EQ(0xcbf43926UL, crc);   // [確認_正常系] - crc32() の戻り値が 0xcbf43926UL であること。
@@ -118,17 +119,21 @@ TEST_F(zlibTest, gzip_file_roundtrip)
     // Pre-Assert
 
     // Act
-    gzFile writer = gzopen("zlib_roundtrip_test.gz", "wb"); // [手順] - gzip 出力を開く。
+    gzFile writer =
+        gzopen("zlib_roundtrip_test.gz", "wb"); // [手順] - 書き込み用の "wb" を指定して gzopen() を呼び出す。
     ASSERT_NE(nullptr, writer);
     // [確認_正常系] - 書き込み用の gzopen() の戻り値が nullptr 以外であること。
     const int written =
-        gzwrite(writer, source.data(), static_cast<unsigned>(source.size())); // [手順] - バイナリを圧縮して書き込む。
+        gzwrite(writer, source.data(),
+                static_cast<unsigned>(source.size())); // [手順] - バイナリを指定して gzwrite() を呼び出す。
     const int write_close_ret = gzclose(writer);
-    gzFile reader = gzopen("zlib_roundtrip_test.gz", "rb"); // [手順] - gzip 入力を開く。
+    gzFile reader =
+        gzopen("zlib_roundtrip_test.gz", "rb"); // [手順] - 読み込み用の "rb" を指定して gzopen() を呼び出す。
     ASSERT_NE(nullptr, reader);
     // [確認_正常系] - 読み込み用の gzopen() の戻り値が nullptr 以外であること。
-    const int read_size =
-        gzread(reader, restored.data(), static_cast<unsigned>(restored.size())); // [手順] - データを展開して読み込む。
+    const int read_size = gzread(
+        reader, restored.data(),
+        static_cast<unsigned>(restored.size())); // [手順] - 読み込み先のバッファーを指定して gzread() を呼び出す。
     const int read_close_ret = gzclose(reader);
 
     // Assert
@@ -153,9 +158,10 @@ TEST_F(zlibTest, size_t_api_roundtrip)
     // Pre-Assert
 
     // Act
-    const int compress_ret = compress_z(output, &output_size, source, sizeof(source)); // [手順] - size_t 版で圧縮する。
+    const int compress_ret =
+        compress_z(output, &output_size, source, sizeof(source)); // [手順] - size_t 版の compress_z() を呼び出す。
     const int restore_ret =
-        uncompress_z(restored, &restored_size, output, output_size); // [手順] - size_t 版で展開する。
+        uncompress_z(restored, &restored_size, output, output_size); // [手順] - size_t 版の uncompress_z() を呼び出す。
 
     // Assert
     EXPECT_EQ(Z_OK, compress_ret);            // [確認_正常系] - compress_z() の戻り値が Z_OK であること。
@@ -181,8 +187,8 @@ TEST_F(zlibTest, decompression_buffer_too_small)
     // Pre-Assert
 
     // Act
-    const int ret =
-        uncompress(restored, &restored_size, compressed, compressed_size); // [手順] - 狭いバッファーへ展開する。
+    const int ret = uncompress(restored, &restored_size, compressed,
+                               compressed_size); // [手順] - 狭い展開先を指定して uncompress() を呼び出す。
 
     // Assert
     EXPECT_EQ(Z_BUF_ERROR, ret); // [確認_異常系] - uncompress() の戻り値が Z_BUF_ERROR であること。
