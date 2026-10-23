@@ -1,6 +1,6 @@
 # packages
 
-[公式配布ページ](https://zlib.net/)から取得した `zlib-1.3.2.tar.gz` を同梱します。
+[公式配布ページ](https://zlib.net/) から取得した `zlib-1.3.2.tar.gz` を同梱します。
 
 - 取得元: <https://zlib.net/zlib-1.3.2.tar.gz>
 - バージョン: 1.3.2
