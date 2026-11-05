@@ -27,7 +27,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
 
 PACKAGE_NAME_PATTERN = re.compile(r"^zlib-.*\.tar\.gz$", re.IGNORECASE)
-VERSION_PATTERN = re.compile(r"^zlib-(\d+)\.(\d+)\.(\d+)\.tar\.gz$", re.IGNORECASE)
+VERSION_PATTERN = re.compile(r"^zlib-(\d+)\.(\d+)(?:\.(\d+))?\.tar\.gz$", re.IGNORECASE)
 
 # 公式 Makefile.in の OBJZ / OBJG に対応する C ソース。
 PUBLIC_HEADERS = ["zlib.h", "zconf.h"]
@@ -172,7 +172,7 @@ def parse_version(filename):
     m = VERSION_PATTERN.match(filename)
     if m is None:
         return None
-    return tuple(int(part) for part in m.groups())
+    return tuple(int(part or 0) for part in m.groups())
 
 
 def select_package(packages_dir, candidates):
@@ -200,11 +200,11 @@ def print_missing_package_guide(packages_dir):
         "ERROR: zlib のソース アーカイブ (tar.gz) が app/zlib/packages に見つかりません。",
         "",
         f"  配置先: {packages_dir}",
-        "  ファイル名の例: zlib-1.3.2.tar.gz (バージョン番号をファイル名に含めること)",
+        "  ファイル名の例: zlib-1.4.tar.gz (バージョン番号をファイル名に含めること)",
         "",
         "  取得方法 (curl での取得例):",
-        "    curl -L -o app/zlib/packages/zlib-1.3.2.tar.gz \\",
-        "      https://zlib.net/zlib-1.3.2.tar.gz",
+        "    curl -L -o app/zlib/packages/zlib-1.4.tar.gz \\",
+        "      https://zlib.net/zlib-1.4.tar.gz",
         "",
         "  最新版は https://zlib.net/ でも確認できます。",
         "  取得後、このディレクトリには常に 1 個の tar.gz のみを配置してください。",

@@ -8,7 +8,7 @@ c-modernization-kit のワークスペース内 (`framework/makefw` 等と組み
 
 ## 提供する機能
 
-zlib 1.3.2 の圧縮・展開、チェックサム、gzip ファイル API を取り込みます。  
+zlib 1.4 の圧縮・展開、チェックサム、gzip ファイル API を取り込みます。  
 `contrib/minizip` と公式サンプル コマンドは取り込みません。
 
 | 環境 | 共有ライブラリ | リンク指定 |
@@ -84,6 +84,8 @@ Table: zlib マクロ呼び出しとモック対象関数の対応一覧
 
 Linux では `_LARGEFILE64_SOURCE=1` を指定し、64-bit offset API を含めて検証します。  
 Windows のモックでは、本体がエクスポートする同 API の宣言を補います。  
+Windows の通常 API も 64-bit offset を維持するため、公開ヘッダーへの [パッチ](patches/README.md#0002-windows-64-bit-offsetpatch) で `z_off_t` を `long long` にします。  
+DLL、利用側、モックで同じヘッダーを使用し、`_FILE_OFFSET_BITS=64` による関数名の置換は使用しません。  
 Windows 専用の `gzopen_w` は Windows の API 表と網羅テストだけに含めます。  
 `Z_PREFIX`、`Z_SOLO`、呼び出し規約の変更はこの構成の対象外です。
 

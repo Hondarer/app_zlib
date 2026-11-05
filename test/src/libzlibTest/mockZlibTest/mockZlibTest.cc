@@ -2,6 +2,7 @@
 #include <mock_zlib.h>
 
 #include <cstdio>
+#include <memory>
 
 class mockZlibTest : public Test
 {
@@ -135,5 +136,83 @@ TEST_F(mockZlibTest, printf_delegates_to_real_file)
     EXPECT_EQ(8, size); // [確認_正常系] - gzread() の戻り値が 8 であること。("value:42" の文字数であることの確認)
     EXPECT_STREQ("value:42",
                  output); // [確認_正常系] - output が "value:42" であること。(実ファイルに書式化結果が残ったことの確認)
+}
+// [サブ手順参照 名前=mockZlibTest.TearDown]
+
+// 非圧縮ファイルの EOF より先へ移動し、実 OS の 64 bit ファイル位置を確認する。
+TEST_F(mockZlibTest, file_offsets_beyond_32_bits)
+{
+    // Arrange
+    std::unique_ptr<FILE, decltype(&std::fclose)> seed(std::fopen("zlib_printf_test.gz", "wb"), &std::fclose);
+    ASSERT_NE(nullptr, seed);                          // [状態確認] - 入力ファイルを作成できること。
+    ASSERT_EQ(1U, std::fwrite("x", 1, 1, seed.get())); // [状態確認] - 非圧縮データを 1 byte 書き込めること。
+    seed.reset();
+    std::unique_ptr<gzFile_s, decltype(&gzclose)> file(gzopen("zlib_printf_test.gz", "rb"), &gzclose);
+    ASSERT_NE(nullptr, file);                 // [状態確認] - 読み込み用ハンドルを取得できること。
+    ASSERT_EQ(1, gzdirect(file.get()));       // [状態確認] - 非圧縮ファイルの直接読み取りになっていること。
+    const z_off64_t position = 0x100000011LL; // [状態] - 4 GiB を超える位置を用意する。
+
+    // Pre-Assert
+
+    // Act
+    const z_off_t seek = gzseek(file.get(), position, SEEK_SET); // [手順] - 通常 API で 4 GiB を超える位置へ移動する。
+    const z_off_t tell = gztell(file.get());                     // [手順] - 論理位置を取得する。
+    const z_off_t offset = gzoffset(file.get());                 // [手順] - OS のファイル位置を取得する。
+    const z_off64_t back = gzseek64(file.get(), -0x80000000LL, SEEK_CUR); // [手順] - 64-bit API で 2 GiB 戻る。
+    const z_off64_t tell64 = gztell64(file.get());                        // [手順] - 64-bit API で論理位置を取得する。
+    const z_off64_t offset64 = gzoffset64(file.get()); // [手順] - 64-bit API で OS のファイル位置を取得する。
+
+    // Assert
+    EXPECT_EQ(position, seek);         // [確認_正常系] - 通常 API の移動結果が 4 GiB を超えても切り詰められないこと。
+    EXPECT_EQ(position, tell);         // [確認_正常系] - 通常 API の論理位置が一致すること。
+    EXPECT_EQ(position, offset);       // [確認_正常系] - 通常 API の OS ファイル位置が一致すること。
+    EXPECT_EQ(0x80000011LL, back);     // [確認_正常系] - 負の相対移動後も 2 GiB を超える位置が保持されること。
+    EXPECT_EQ(0x80000011LL, tell64);   // [確認_正常系] - 64-bit API の論理位置が一致すること。
+    EXPECT_EQ(0x80000011LL, offset64); // [確認_正常系] - 64-bit API の OS ファイル位置が一致すること。
+}
+// [サブ手順参照 名前=mockZlibTest.TearDown]
+
+// モックへの引数とモックからの戻り値が 64 bit のまま伝わることを確認する。
+TEST_F(mockZlibTest, overrides_64_bit_file_offsets)
+{
+    // Arrange
+    StrictMock<Mock_zlib> mock;               // [状態] - 実ファイルへの委譲を許さないモックを用意する。
+    const z_off64_t position = 0x100000011LL; // [状態] - 4 GiB を超える値を用意する。
+
+    // Pre-Assert
+    EXPECT_CALL(mock, gzseek(nullptr, position, SEEK_SET))
+        .WillOnce(Return(position)); // [Pre-Assert確認_正常系] - gzseek() が指定した引数で 1 回呼ばれること。
+    // [Pre-Assert手順] - 4 GiB を超える値を返す。
+    EXPECT_CALL(mock, gztell(nullptr))
+        .WillOnce(Return(position)); // [Pre-Assert確認_正常系] - gztell() が指定した引数で 1 回呼ばれること。
+    // [Pre-Assert手順] - 4 GiB を超える値を返す。
+    EXPECT_CALL(mock, gzoffset(nullptr))
+        .WillOnce(Return(position)); // [Pre-Assert確認_正常系] - gzoffset() が指定した引数で 1 回呼ばれること。
+    // [Pre-Assert手順] - 4 GiB を超える値を返す。
+    EXPECT_CALL(mock, gzseek64(nullptr, -position, SEEK_CUR))
+        .WillOnce(Return(position)); // [Pre-Assert確認_正常系] - gzseek64() が指定した引数で 1 回呼ばれること。
+    // [Pre-Assert手順] - 4 GiB を超える値を返す。
+    EXPECT_CALL(mock, gztell64(nullptr))
+        .WillOnce(Return(position)); // [Pre-Assert確認_正常系] - gztell64() が指定した引数で 1 回呼ばれること。
+    // [Pre-Assert手順] - 4 GiB を超える値を返す。
+    EXPECT_CALL(mock, gzoffset64(nullptr))
+        .WillOnce(Return(position)); // [Pre-Assert確認_正常系] - gzoffset64() が指定した引数で 1 回呼ばれること。
+    // [Pre-Assert手順] - 4 GiB を超える値を返す。
+
+    // Act
+    const auto result_gzseek = gzseek(nullptr, position, SEEK_SET);      // [手順] - gzseek() を呼び出す。
+    const auto result_gztell = gztell(nullptr);                          // [手順] - gztell() を呼び出す。
+    const auto result_gzoffset = gzoffset(nullptr);                      // [手順] - gzoffset() を呼び出す。
+    const auto result_gzseek64 = gzseek64(nullptr, -position, SEEK_CUR); // [手順] - gzseek64() を呼び出す。
+    const auto result_gztell64 = gztell64(nullptr);                      // [手順] - gztell64() を呼び出す。
+    const auto result_gzoffset64 = gzoffset64(nullptr);                  // [手順] - gzoffset64() を呼び出す。
+
+    // Assert
+    EXPECT_EQ(position, result_gzseek);     // [確認_正常系] - gzseek() の戻り値が切り詰められないこと。
+    EXPECT_EQ(position, result_gztell);     // [確認_正常系] - gztell() の戻り値が切り詰められないこと。
+    EXPECT_EQ(position, result_gzoffset);   // [確認_正常系] - gzoffset() の戻り値が切り詰められないこと。
+    EXPECT_EQ(position, result_gzseek64);   // [確認_正常系] - gzseek64() の戻り値が切り詰められないこと。
+    EXPECT_EQ(position, result_gztell64);   // [確認_正常系] - gztell64() の戻り値が切り詰められないこと。
+    EXPECT_EQ(position, result_gzoffset64); // [確認_正常系] - gzoffset64() の戻り値が切り詰められないこと。
 }
 // [サブ手順参照 名前=mockZlibTest.TearDown]

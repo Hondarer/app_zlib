@@ -14,6 +14,6 @@ endif
 
 ifdef PLATFORM_LINUX
     # 64-bit offset API と unistd.h の宣言を本体・テストで統一する。
-    # see: https://github.com/madler/zlib/blob/v1.3.2/zconf.h
+    # see: https://github.com/madler/zlib/blob/v1.4/zconf.h
     DEFINES += _LARGEFILE64_SOURCE=1
 endif

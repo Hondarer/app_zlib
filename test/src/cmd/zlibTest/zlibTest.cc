@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdio>
+#include <memory>
 #include <vector>
 
 class zlibTest : public Test
@@ -15,6 +16,25 @@ class zlibTest : public Test
     }
     // [サブ手順終了]
 };
+
+// 通常 API と 64-bit API が 32 bit を超える長さで同じ CRC-32 を返すことの確認
+TEST_F(zlibTest, combine_preserves_64_bit_length)
+{
+    // Arrange
+    const z_off64_t length = 0x100000001LL; // [状態] - 32 bit を超える結合対象の長さを用意する。
+
+    // Pre-Assert
+
+    // Act
+    const uLong actual = crc32_combine(0x12345678UL, 0x87654321UL,
+                                       length); // [手順] - 通常 API に 32 bit を超える長さを渡す。
+    const uLong expected = crc32_combine64(0x12345678UL, 0x87654321UL,
+                                           length); // [手順] - 同じ長さを 64-bit API に渡す。
+
+    // Assert
+    EXPECT_EQ(expected, actual); // [確認_正常系] - 通常 API が長さを切り詰めず 64-bit API と同じ結果を返すこと。
+}
+// [サブ手順参照 名前=zlibTest.TearDown]
 
 // 空データ・バイナリ・反復データを含むメモリ上の圧縮・展開ラウンド トリップが成功することの確認
 TEST_F(zlibTest, memory_roundtrip_including_empty_and_binary)
@@ -192,5 +212,38 @@ TEST_F(zlibTest, decompression_buffer_too_small)
 
     // Assert
     EXPECT_EQ(Z_BUF_ERROR, ret); // [確認_異常系] - uncompress() の戻り値が Z_BUF_ERROR であること。
+}
+// [サブ手順参照 名前=zlibTest.TearDown]
+
+// 非圧縮ファイルの EOF より先へ移動し、実 OS の 64 bit ファイル位置を確認する。
+TEST_F(zlibTest, file_offsets_beyond_32_bits)
+{
+    // Arrange
+    std::unique_ptr<FILE, decltype(&std::fclose)> seed(std::fopen("zlib_roundtrip_test.gz", "wb"), &std::fclose);
+    ASSERT_NE(nullptr, seed);                          // [状態確認] - 入力ファイルを作成できること。
+    ASSERT_EQ(1U, std::fwrite("x", 1, 1, seed.get())); // [状態確認] - 非圧縮データを 1 byte 書き込めること。
+    seed.reset();
+    std::unique_ptr<gzFile_s, decltype(&gzclose)> file(gzopen("zlib_roundtrip_test.gz", "rb"), &gzclose);
+    ASSERT_NE(nullptr, file);                 // [状態確認] - 読み込み用ハンドルを取得できること。
+    ASSERT_EQ(1, gzdirect(file.get()));       // [状態確認] - 非圧縮ファイルの直接読み取りになっていること。
+    const z_off64_t position = 0x100000011LL; // [状態] - 4 GiB を超える位置を用意する。
+
+    // Pre-Assert
+
+    // Act
+    const z_off_t seek = gzseek(file.get(), position, SEEK_SET); // [手順] - 通常 API で 4 GiB を超える位置へ移動する。
+    const z_off_t tell = gztell(file.get());                     // [手順] - 論理位置を取得する。
+    const z_off_t offset = gzoffset(file.get());                 // [手順] - OS のファイル位置を取得する。
+    const z_off64_t back = gzseek64(file.get(), -0x80000000LL, SEEK_CUR); // [手順] - 64-bit API で 2 GiB 戻る。
+    const z_off64_t tell64 = gztell64(file.get());                        // [手順] - 64-bit API で論理位置を取得する。
+    const z_off64_t offset64 = gzoffset64(file.get()); // [手順] - 64-bit API で OS のファイル位置を取得する。
+
+    // Assert
+    EXPECT_EQ(position, seek);         // [確認_正常系] - 通常 API の移動結果が 4 GiB を超えても切り詰められないこと。
+    EXPECT_EQ(position, tell);         // [確認_正常系] - 通常 API の論理位置が一致すること。
+    EXPECT_EQ(position, offset);       // [確認_正常系] - 通常 API の OS ファイル位置が一致すること。
+    EXPECT_EQ(0x80000011LL, back);     // [確認_正常系] - 負の相対移動後も 2 GiB を超える位置が保持されること。
+    EXPECT_EQ(0x80000011LL, tell64);   // [確認_正常系] - 64-bit API の論理位置が一致すること。
+    EXPECT_EQ(0x80000011LL, offset64); // [確認_正常系] - 64-bit API の OS ファイル位置が一致すること。
 }
 // [サブ手順参照 名前=zlibTest.TearDown]

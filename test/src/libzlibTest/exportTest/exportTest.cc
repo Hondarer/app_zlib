@@ -6,6 +6,9 @@
 #include <string>
 #include <type_traits>
 
+static_assert(sizeof(z_off_t) == 8, "z_off_t は 64 bit である必要があります");
+static_assert(sizeof(z_off64_t) == 8, "z_off64_t は 64 bit である必要があります");
+
 #define MOCK_ZLIB_RET(return_type, name, parameters, arguments, matchers) \
     using expected_##name##_fn = return_type(*) parameters; \
     static_assert(std::is_same<decltype(&name), expected_##name##_fn>::value, #name " のシグネチャが不一致です");

@@ -1,4 +1,4 @@
-/* zlib 1.3.2 の公開関数一覧。宣言・モック・実装・網羅テストで共有する。
+/* zlib 1.4 の公開関数一覧。宣言・モック・実装・網羅テストで共有する。
  * include guard は意図的に置かない。gzprintf は専用ラッパーで gzvprintf へ渡す。
  */
 #ifndef MOCK_ZLIB_RET

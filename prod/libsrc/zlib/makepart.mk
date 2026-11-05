@@ -2,7 +2,7 @@
 LIB_TYPE = shared
 ifdef PLATFORM_WINDOWS
     # zutil.h / gzguts.h が ZLIB_INTERNAL を定義する。
-    # see: https://github.com/madler/zlib/blob/v1.3.2/zconf.h
+    # see: https://github.com/madler/zlib/blob/v1.4/zconf.h
     DEFINES += ZLIB_DLL
 else ifdef PLATFORM_LINUX
     DEFINES += ZLIB_API_VISIBILITY

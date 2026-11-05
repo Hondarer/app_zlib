@@ -9,3 +9,12 @@ Linux の共有ライブラリを `-fvisibility=hidden` で構築し、`ZLIB_API
 内部関数と内部データの流出を防ぎ、公開関数と API モックの網羅性を照合できるようにします。  
 圧縮アルゴリズム、型、関数シグネチャ、Windows の DLL 宣言は変更しません。  
 パッチは `prod/include/zconf.h` に適用します。
+
+## 0002-windows-64-bit-offset.patch
+
+Windows の `z_off_t` の既定を `long long` とし、1.3.2 と同じ 64-bit offset を維持します。  
+zlib 1.4 の既定値である `long` は Windows では 32 bit のため、通常の `gzseek`、`gztell`、チェックサム結合 API でも 64 bit の値を扱えるようにします。  
+`_FILE_OFFSET_BITS=64` による通常名から `*64` 名への置換を避け、実ライブラリと API モックで両方の関数名を維持します。
+
+パッチは `prod/include/zconf.h` に適用し、DLL、利用側、モックで同じ型定義を使用します。  
+型の変更と公式の 64-bit offset 設定は [公式リリース情報](https://zlib.net/zlib.html) を参照してください。

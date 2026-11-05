@@ -1,0 +1,18 @@
+--- a/prod/include/zconf.h
++++ b/prod/include/zconf.h
+@@ -524,7 +524,14 @@
+ #endif
+ 
+ #ifndef z_off_t
+-#  define z_off_t long
++/* Preserve the 1.3.2 Windows ABI without redirecting API names to *64.
++ * see: https://zlib.net/zlib.html
++ */
++#  if defined(_WIN32) && !defined(__CYGWIN__)
++#    define z_off_t long long
++#  else
++#    define z_off_t long
++#  endif
+ #endif
+ 
+ #if !defined(_WIN32) && defined(Z_LARGE64)

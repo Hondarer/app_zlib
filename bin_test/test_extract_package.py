@@ -36,7 +36,7 @@ class ExtractPackageTest(unittest.TestCase):
     def test_initial_extract_and_noop(self):
         self.assert_success()
         header = self.app / "prod/include/zconf.h"
-        self.assertIn("ZLIB_API_VISIBILITY", header.read_text())
+        self.assertIn("ZLIB_API_VISIBILITY", header.read_text(encoding="utf-8"))
         license_file = self.app / "prod/libsrc/zlib/LICENSE"
         self.assertTrue(license_file.is_file())
         before = {p: p.stat().st_mtime_ns for p in self.app.rglob("*") if p.is_file()}
@@ -53,22 +53,26 @@ class ExtractPackageTest(unittest.TestCase):
         self.assertEqual(expected, source.read_bytes())
 
     def test_missing_package_fails(self):
-        (self.app / "packages/zlib-1.3.2.tar.gz").unlink()
+        (self.app / "packages/zlib-1.4.tar.gz").unlink()
         result = self.run_extract()
         self.assertNotEqual(0, result.returncode)
         self.assertIn("curl", result.stderr)
         self.assertFalse((self.app / "make_extract.stamp").exists())
 
     def test_multiple_packages_choose_newest_version(self):
-        shutil.copyfile(self.app / "packages/zlib-1.3.2.tar.gz",
+        shutil.copyfile(self.app / "packages/zlib-1.4.tar.gz",
                         self.app / "packages/zlib-1.3.1.tar.gz")
+        package = self.app / "packages/zlib-1.4.tar.gz"
+        older = self.app / "packages/zlib-1.3.1.tar.gz"
+        os.utime(package, ns=(1_000_000_000, 1_000_000_000))
+        os.utime(older, ns=(2_000_000_000, 2_000_000_000))
         result = self.assert_success()
         self.assertIn("WARNING", result.stderr)
-        self.assertIn("package=zlib-1.3.2.tar.gz", (self.app / "make_extract.stamp").read_text())
+        self.assertIn("package=zlib-1.4.tar.gz", (self.app / "make_extract.stamp").read_text(encoding="utf-8"))
 
     def test_package_content_change_with_preserved_metadata(self):
         self.assert_success()
-        package = self.app / "packages/zlib-1.3.2.tar.gz"
+        package = self.app / "packages/zlib-1.4.tar.gz"
         metadata = package.stat()
         data = bytearray(package.read_bytes())
         # gzip ヘッダーの OS フィールドだけを変更し、サイズと mtime を維持する。
@@ -86,10 +90,10 @@ class ExtractPackageTest(unittest.TestCase):
         with open(patch, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(content)
         self.assert_success()
-        self.assertIn("ZLIB_TEST_VISIBILITY", (self.app / "prod/include/zconf.h").read_text())
+        self.assertIn("ZLIB_TEST_VISIBILITY", (self.app / "prod/include/zconf.h").read_text(encoding="utf-8"))
 
     def test_invalid_archive_fails_without_stamp(self):
-        package = self.app / "packages/zlib-1.3.2.tar.gz"
+        package = self.app / "packages/zlib-1.4.tar.gz"
         package.write_bytes(b"not a gzip archive")
         result = self.run_extract()
         self.assertNotEqual(0, result.returncode)
@@ -97,9 +101,9 @@ class ExtractPackageTest(unittest.TestCase):
         self.assertFalse((self.app / "make_extract.stamp").exists())
 
     def test_non_regular_member_is_rejected(self):
-        package = self.app / "packages/zlib-1.3.2.tar.gz"
+        package = self.app / "packages/zlib-1.4.tar.gz"
         with tarfile.open(package, "w:gz") as archive:
-            member = tarfile.TarInfo("zlib-1.3.2/zlib.h")
+            member = tarfile.TarInfo("zlib-1.4/zlib.h")
             member.type = tarfile.SYMTYPE
             member.linkname = "../../outside"
             archive.addfile(member)
@@ -114,7 +118,7 @@ class ExtractPackageTest(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
         self.assert_success()
         header = self.app / "prod/include/zconf.h"
-        self.assertEqual(1, header.read_text().count("defined(ZLIB_API_VISIBILITY)"))
+        self.assertEqual(1, header.read_text(encoding="utf-8").count("defined(ZLIB_API_VISIBILITY)"))
 
 
 if __name__ == "__main__":
