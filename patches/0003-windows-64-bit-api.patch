@@ -1,0 +1,16 @@
+--- a/prod/include/zconf.h
++++ b/prod/include/zconf.h
+@@ -509,7 +509,12 @@
+ #  define Z_WINLFS
+ #endif
+ 
+-#if defined(_LARGEFILE64_SOURCE) && defined(Z_LFS64)
++/* Expose the native Windows 64-bit APIs without consumer build flags.
++ * Keep the regular API names and the non-Windows opt-in unchanged.
++ * see: https://github.com/madler/zlib/blob/v1.4/zconf.h
++ */
++#if defined(Z_LFS64) && \
++    (defined(_LARGEFILE64_SOURCE) || defined(Z_WINLFS))
+ #  define Z_LARGE64
+ #endif
+ 

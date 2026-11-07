@@ -18,3 +18,11 @@ zlib 1.4 の既定値である `long` は Windows では 32 bit のため、通�
 
 パッチは `prod/include/zconf.h` に適用し、DLL、利用側、モックで同じ型定義を使用します。  
 型の変更と公式の 64-bit offset 設定は [公式リリース情報](https://zlib.net/zlib.html) を参照してください。
+
+## 0003-windows-64-bit-api.patch
+
+`Z_WINLFS` が定義されるネイティブ Windows 環境では、`Z_LARGE64` を自動で有効にし、公開ヘッダーで `*64` API を宣言します。  
+利用側で `_LARGEFILE64_SOURCE` を指定する必要はありません。  
+Linux の有効化条件と通常の API 名は維持します。
+
+パッチは `prod/include/zconf.h` に適用し、DLL、利用側、モックで同じ宣言を使用します。
