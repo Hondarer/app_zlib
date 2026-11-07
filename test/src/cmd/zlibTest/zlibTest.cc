@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdio>
+#include <fstream>
 #include <memory>
 #include <vector>
 
@@ -219,10 +220,10 @@ TEST_F(zlibTest, decompression_buffer_too_small)
 TEST_F(zlibTest, file_offsets_beyond_32_bits)
 {
     // Arrange
-    std::unique_ptr<FILE, decltype(&std::fclose)> seed(std::fopen("zlib_roundtrip_test.gz", "wb"), &std::fclose);
-    ASSERT_NE(nullptr, seed);                          // [状態確認] - 入力ファイルを作成できること。
-    ASSERT_EQ(1U, std::fwrite("x", 1, 1, seed.get())); // [状態確認] - 非圧縮データを 1 byte 書き込めること。
-    seed.reset();
+    std::ofstream seed("zlib_roundtrip_test.gz", std::ios::binary);
+    ASSERT_TRUE(seed.is_open());                      // [状態確認] - 入力ファイルを作成できること。
+    ASSERT_TRUE(static_cast<bool>(seed.write("x", 1))); // [状態確認] - 非圧縮データを 1 byte 書き込めること。
+    seed.close();
     std::unique_ptr<gzFile_s, decltype(&gzclose)> file(gzopen("zlib_roundtrip_test.gz", "rb"), &gzclose);
     ASSERT_NE(nullptr, file);                 // [状態確認] - 読み込み用ハンドルを取得できること。
     ASSERT_EQ(1, gzdirect(file.get()));       // [状態確認] - 非圧縮ファイルの直接読み取りになっていること。
