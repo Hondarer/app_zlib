@@ -31,7 +31,7 @@ static const char *const kExpectedExportNames[] = {
     "gzprintf",
 };
 
-// libzlib の期待シンボルと実ライブラリの全エクスポートが一致することの確認
+// libzlib_app の期待シンボルと実ライブラリの全エクスポートが一致することの確認
 TEST(exportTest, zlib_symbols_match_api_table)
 {
     // Arrange
@@ -40,10 +40,10 @@ TEST(exportTest, zlib_symbols_match_api_table)
         std::end(kExpectedExportNames)); // [状態] - mock_zlib の API 表から期待する公開関数名を構築する。
 #if defined(PLATFORM_WINDOWS)
     expected.insert(testing::identManifestSymbolName(
-        "libzlib" TESTFW_SHARED_LIBRARY_EXTENSION)); // [状態] - IDENT manifest シンボル名を期待値へ追加する。
+        "libzlib_app" TESTFW_SHARED_LIBRARY_EXTENSION)); // [状態] - IDENT manifest シンボル名を期待値へ追加する。
 #endif                                               /* PLATFORM_WINDOWS */
-    std::string path = findWorkspaceRoot() + "/app/zlib/prod/lib/libzlib" +
-                       TESTFW_SHARED_LIBRARY_EXTENSION; // [状態] - 検査対象を libzlib の動的ライブラリとする。
+    std::string path = findWorkspaceRoot() + "/app/zlib/prod/lib/libzlib_app" +
+                       TESTFW_SHARED_LIBRARY_EXTENSION; // [状態] - 検査対象を libzlib_app の動的ライブラリとする。
 
     // Pre-Assert
 
@@ -54,5 +54,5 @@ TEST(exportTest, zlib_symbols_match_api_table)
     // Assert
     // [サブ手順参照 名前=testing.expectExportNamesMatch]
     testing::expectExportNamesMatch(expected,
-                                    actual); // libzlib のエクスポートに不足や想定外がないこと。
+                                    actual); // libzlib_app のエクスポートに不足や想定外がないこと。
 }

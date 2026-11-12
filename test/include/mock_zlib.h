@@ -23,7 +23,7 @@ extern "C"
 }
 #endif
 
-inline constexpr char kLibZlibName[] = "libzlib" TESTFW_SHARED_LIBRARY_EXTENSION;
+inline constexpr char kLibZlibName[] = "libzlib_app" TESTFW_SHARED_LIBRARY_EXTENSION;
 
 #define MOCK_ZLIB_RET(return_type, name, parameters, arguments, matchers) \
     extern return_type delegate_real_##name parameters;

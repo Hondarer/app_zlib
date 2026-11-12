@@ -1,4 +1,6 @@
 # 配布ソースは生成物であり、直接編集・整形しない。
+# 第三者管理ライブラリは、OS やほかの製品の同名ライブラリと区別するため、名前に接尾辞 _app を付ける。
+TARGET := zlib_app
 LIB_TYPE = shared
 ifdef PLATFORM_WINDOWS
     # zutil.h / gzguts.h が ZLIB_INTERNAL を定義する。

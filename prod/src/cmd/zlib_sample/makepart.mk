@@ -1,1 +1,1 @@
-LIBS += zlib
+LIBS += zlib_app

@@ -13,8 +13,8 @@ zlib 1.4 の圧縮・展開、チェックサム、gzip ファイル API を取�
 
 | 環境 | 共有ライブラリ | リンク指定 |
 |---|---|---|
-| Linux/GCC | `prod/lib/libzlib.so` | `LIBS += zlib` |
-| Windows/MSVC | `prod/lib/libzlib.dll` と import library `libzlib.lib` | `LIBS += zlib` |
+| Linux/GCC | `prod/lib/libzlib_app.so` | `LIBS += zlib_app` |
+| Windows/MSVC | `prod/lib/libzlib_app.dll` と import library `libzlib_app.lib` | `LIBS += zlib_app` |
 
 Table: 環境別の zlib 共有ライブラリとリンク指定
 
@@ -53,7 +53,7 @@ app の追加後は `make sync-app-env` で更新します。
 ## API モック
 
 単体テストでは `<mock_zlib.h>` と `LIBS += mock_zlib` を使用します。  
-モックを生成しない場合と、個別の動作を設定していない場合は、`libzlib` の実関数へ委譲します。  
+モックを生成しない場合と、個別の動作を設定していない場合は、`libzlib_app` の実関数へ委譲します。  
 実ライブラリのロードとシンボル解決に失敗すると、理由を標準エラーへ出力して終了します。
 
 ```cpp
