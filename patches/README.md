@@ -26,3 +26,9 @@ zlib 1.4 の既定値である `long` は Windows では 32 bit のため、通�
 Linux の有効化条件と通常の API 名は維持します。
 
 パッチは `prod/include/zconf.h` に適用し、DLL、利用側、モックで同じ宣言を使用します。
+
+## 0004-public-api-namespace-gzgetc.patch
+
+`gzgetc` 関数の定義直前に、元名から固有名への内部対応マクロではなく、固有名の関数形式マクロを解除します。これにより、関数定義と関数形式マクロの双方が `zlib_app_gzgetc` を参照します。
+
+パッチは `prod/libsrc/zlib/gzread.c` に適用します。

@@ -1,0 +1,11 @@
+--- a/prod/libsrc/zlib/gzread.c
++++ b/prod/libsrc/zlib/gzread.c
+@@ -510,6 +510,6 @@
+ #ifdef Z_PREFIX_SET
+-#  undef z_gzgetc
++#  undef zlib_app_z_gzgetc
+ #else
+-#  undef gzgetc
++#  undef zlib_app_gzgetc
+ #endif
+ int ZEXPORT gzgetc(gzFile file) {

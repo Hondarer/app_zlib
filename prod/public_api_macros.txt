@@ -1,0 +1,13 @@
+deflateInit deflateInit_
+deflateInit2 deflateInit2_
+gzgetc gzgetc
+inflateBackInit inflateBackInit_
+inflateInit inflateInit_
+inflateInit2 inflateInit2_
+z_deflateInit deflateInit_
+z_deflateInit2 deflateInit2_
+z_gzgetc gzgetc
+zlib_version zlibVersion
+z_inflateBackInit inflateBackInit_
+z_inflateInit inflateInit_
+z_inflateInit2 inflateInit2_

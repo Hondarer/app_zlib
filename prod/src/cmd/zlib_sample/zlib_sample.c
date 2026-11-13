@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     Bytef compressed[128] = {0};
     Bytef restored[sizeof(source)] = {0};
     uLongf compressed_size = sizeof(compressed);
-    int ret = compress2(compressed, &compressed_size, source, sizeof(source), Z_BEST_COMPRESSION);
+    int ret = zlib_app_compress2(compressed, &compressed_size, source, sizeof(source), Z_BEST_COMPRESSION);
     if (ret != Z_OK)
     {
         fprintf(stderr, "Compression failed: %d\n", ret);
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     }
 
     uLongf restored_size = sizeof(restored);
-    ret = uncompress(restored, &restored_size, compressed, compressed_size);
+    ret = zlib_app_uncompress(restored, &restored_size, compressed, compressed_size);
     if (ret != Z_OK)
     {
         fprintf(stderr, "Decompression failed: %d\n", ret);
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Restored data does not match\n");
         return 1;
     }
-    ret = printf("zlib %s: %zu -> %lu -> %lu bytes, round trip OK\n", zlibVersion(), sizeof(source), compressed_size,
+    ret = printf("zlib %s: %zu -> %lu -> %lu bytes, round trip OK\n", zlib_app_zlibVersion(), sizeof(source), compressed_size,
                  restored_size);
     if (ret < 0)
     {

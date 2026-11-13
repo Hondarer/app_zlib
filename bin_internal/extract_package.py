@@ -46,9 +46,14 @@ EXTRACT_TARGETS.update({
     for name in CORE_SRCS + INTERNAL_HEADERS + ["LICENSE"]
 })
 STAMP_FILENAME = "make_extract.stamp"
+
+NAMESPACE_PREFIX = "zlib_app_"
+NAMESPACE_HEADER = "zlib_app_namespace.h"
+UNDEF_HEADER = "zlib_app_undef.h"
 GITIGNORE_TARGETS = {
     ("prod", "include"): PUBLIC_HEADERS,
     ("prod", "libsrc", "zlib"): CORE_SRCS + INTERNAL_HEADERS + ["LICENSE"],
+    ("prod", "include_internal"): [NAMESPACE_HEADER, UNDEF_HEADER],
 }
 GITIGNORE_HEADER = "# packages/ から展開する生成物。直接編集しない。\n"
 
@@ -248,6 +253,13 @@ def compute_stamp_fields(tar_path, selected_name, patches_dir, apply_patches_mod
         "tar_size": str(st.st_size),
         "package_digest": hashlib.sha256(Path(tar_path).read_bytes()).hexdigest(),
         "patches_digest": apply_patches_mod.series_digest(Path(patches_dir)),
+        "namespace_inputs_digest": hashlib.sha256(
+            (Path(patches_dir).parent / "prod" / "public_symbols.txt").read_bytes()
+            + (Path(patches_dir).parent / "prod" / "public_api_macros.txt").read_bytes()
+        ).hexdigest(),
+        "namespace_generator_digest": hashlib.sha256(
+            (Path(__file__).resolve().parents[3] / "framework" / "makefw" / "bin_internal" / "generate_symbol_namespace.py").read_bytes()
+        ).hexdigest(),
     }
 
 
@@ -275,6 +287,9 @@ def write_stamp(path, fields):
 
 def needs_extraction(tar_path, app_dir, selected_name, patches_dir, apply_patches_mod):
     if any(not os.path.isfile(path) for path in iter_target_paths(app_dir)):
+        return True
+    generated_dir = os.path.join(app_dir, "prod", "include_internal")
+    if any(not os.path.isfile(os.path.join(generated_dir, name)) for name in (NAMESPACE_HEADER, UNDEF_HEADER)):
         return True
 
     current = read_stamp(stamp_path(app_dir))
@@ -355,6 +370,25 @@ def preparation_lock(app_dir):
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
+def generate_namespace(app_dir, makefw_home, namespace_module):
+    """Generate internal remapping headers and rename public header identifiers."""
+    app_path = Path(app_dir)
+    prod_dir = app_path / "prod"
+    include_internal = prod_dir / "include_internal"
+    namespace_path = include_internal / NAMESPACE_HEADER
+    undef_path = include_internal / UNDEF_HEADER
+    symbols_path = prod_dir / "public_symbols.txt"
+    macros_path = prod_dir / "public_api_macros.txt"
+    mapping = namespace_module.generate(
+        symbols_path, macros_path, NAMESPACE_PREFIX, namespace_path, undef_path
+    )
+    for header_name in PUBLIC_HEADERS:
+        header_path = prod_dir / "include" / header_name
+        source = header_path.read_text(encoding="utf-8")
+        transformed = namespace_module.transform_public_header(source, mapping)
+        atomic_replace(str(header_path), transformed)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--app-dir", required=True)
@@ -368,16 +402,17 @@ def main():
 
     sys.path.insert(0, os.path.join(args.makefw_home, "bin_internal"))
     import apply_patches  # noqa: E402  (sys.path 設定後に import する)
+    import generate_symbol_namespace  # noqa: E402
 
     try:
         with preparation_lock(args.app_dir):
-            return prepare_package(args, apply_patches)
+            return prepare_package(args, apply_patches, generate_symbol_namespace)
     except OSError as exc:
         print(f"ERROR: zlib パッケージを準備できません: {exc}", file=sys.stderr)
         return 4
 
 
-def prepare_package(args, apply_patches):
+def prepare_package(args, apply_patches, generate_symbol_namespace):
     packages_dir = os.path.join(args.app_dir, "packages")
     patches_dir = os.path.join(args.app_dir, "patches")
     candidates = find_candidates(packages_dir)
@@ -415,6 +450,12 @@ def prepare_package(args, apply_patches):
         apply_patches.apply_series(Path(patches_dir), Path(args.app_dir))
     except apply_patches.PatchError as exc:
         print(f"ERROR: zlib パッチの適用に失敗しました: {exc}", file=sys.stderr)
+        return 3
+
+    try:
+        generate_namespace(args.app_dir, args.makefw_home, generate_symbol_namespace)
+    except (OSError, ValueError) as exc:
+        print(f"ERROR: zlib 公開 API 名前空間の生成に失敗しました: {exc}", file=sys.stderr)
         return 3
 
     write_stamp(

@@ -21,6 +21,9 @@ class ExtractPackageTest(unittest.TestCase):
         self.app = Path(self.temp.name)
         shutil.copytree(APP / "packages", self.app / "packages")
         shutil.copytree(APP / "patches", self.app / "patches")
+        (self.app / "prod").mkdir()
+        shutil.copyfile(APP / "prod/public_symbols.txt", self.app / "prod/public_symbols.txt")
+        shutil.copyfile(APP / "prod/public_api_macros.txt", self.app / "prod/public_api_macros.txt")
 
     def run_extract(self):
         return subprocess.run(
@@ -37,6 +40,10 @@ class ExtractPackageTest(unittest.TestCase):
         self.assert_success()
         header = self.app / "prod/include/zconf.h"
         self.assertIn("ZLIB_API_VISIBILITY", header.read_text(encoding="utf-8"))
+        self.assertIn("zlib_app_deflate", (self.app / "prod/include/zlib.h").read_text(encoding="utf-8"))
+        self.assertIn("#define zlib_app_zlib_version zlib_app_zlibVersion()",
+                      (self.app / "prod/include/zlib.h").read_text(encoding="utf-8"))
+        self.assertTrue((self.app / "prod/include_internal/zlib_app_namespace.h").is_file())
         license_file = self.app / "prod/libsrc/zlib/LICENSE"
         self.assertTrue(license_file.is_file())
         before = {p: p.stat().st_mtime_ns for p in self.app.rglob("*") if p.is_file()}
@@ -51,6 +58,25 @@ class ExtractPackageTest(unittest.TestCase):
         source.unlink()
         self.assert_success()
         self.assertEqual(expected, source.read_bytes())
+
+
+    def test_symbol_list_change_triggers_regeneration(self):
+        result = self.run_extract()
+        self.assertEqual(0, result.returncode, result.stderr)
+        symbols = self.app / "prod/public_symbols.txt"
+        with symbols.open("a", encoding="utf-8", newline="\n") as stream:
+            stream.write("_NamespaceProbe\n")
+        result = self.run_extract()
+        self.assertEqual(0, result.returncode, result.stderr)
+        namespace = self.app / "prod/include_internal/zlib_app_namespace.h"
+        self.assertIn("#define _NamespaceProbe zlib_app__NamespaceProbe", namespace.read_text(encoding="utf-8"))
+
+    def test_missing_namespace_header_is_regenerated(self):
+        self.assert_success()
+        namespace = self.app / "prod/include_internal/zlib_app_namespace.h"
+        namespace.unlink()
+        self.assert_success()
+        self.assertTrue(namespace.is_file())
 
     def test_missing_package_fails(self):
         (self.app / "packages/zlib-1.4.tar.gz").unlink()

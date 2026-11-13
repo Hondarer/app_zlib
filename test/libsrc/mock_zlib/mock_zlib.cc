@@ -1,4 +1,6 @@
+#define MOCK_ZLIB_DISABLE_CALLER_INJECTION
 #include <mock_zlib.h>
+#undef MOCK_ZLIB_DISABLE_CALLER_INJECTION
 
 #include <cstdio>
 #include <type_traits>
@@ -8,14 +10,15 @@ Mock_zlib *mock_zlib_instance = nullptr;
 namespace
 {
 
-template <typename T> void trace_result(const char *func, const T value)
+template <typename T> void trace_result(const char *func, const char *caller_file, const int caller_line,
+                                       const char *caller_function, const T value)
 {
     if (getTraceLevel() <= TRACE_NONE)
     {
         return;
     }
 
-    std::printf("  > %s", func);
+    std::printf("  > %s (%s:%d %s)", func, caller_file, caller_line, caller_function);
     if (getTraceLevel() >= TRACE_DETAIL)
     {
         if constexpr (std::is_pointer_v<T>)
@@ -37,11 +40,11 @@ template <typename T> void trace_result(const char *func, const T value)
     }
 }
 
-void trace_void(const char *func)
+void trace_void(const char *func, const char *caller_file, const int caller_line, const char *caller_function)
 {
     if (getTraceLevel() > TRACE_NONE)
     {
-        std::printf("  > %s\n", func);
+        std::printf("  > %s (%s:%d %s)\n", func, caller_file, caller_line, caller_function);
     }
 }
 
@@ -55,44 +58,56 @@ void trace_void(const char *func)
 
 #define MOCK_ZLIB_EXPAND(...) __VA_ARGS__
 
-#define MOCK_ZLIB_RET(return_type, name, parameters, arguments, matchers) \
-    return_type delegate_real_##name parameters \
+#define MOCK_ZLIB_RET(return_type, original_name, api_name, parameters, arguments, mock_parameters, mock_arguments, matchers) \
+    return_type delegate_real_##api_name mock_parameters \
     { \
-        static auto real_fn = reinterpret_cast<decltype(&name)>(resolveSharedSymbolOrExit(kLibZlibName, #name)); \
+        (void)caller_file; \
+        (void)caller_line; \
+        (void)caller_function; \
+        static auto real_fn = reinterpret_cast<decltype(&api_name)>(resolveSharedSymbolOrExit(kLibZlibName, #api_name)); \
         return real_fn arguments; \
     } \
-    MOCK_ZLIB_IMPL(return_type, name, MOCK_ZLIB_EXPAND parameters) \
+    MOCK_ZLIB_IMPL(return_type, api_name, MOCK_ZLIB_EXPAND parameters) \
+    { \
+        const char *caller_file = "<unknown>"; \
+        const int caller_line = 0; \
+        const char *caller_function = "<unknown>"; \
+        return mock_##api_name mock_arguments; \
+    } \
+    extern "C" return_type mock_##api_name mock_parameters \
     { \
         return_type return_value; \
         if (mock_zlib_instance != nullptr) \
-        { \
-            return_value = mock_zlib_instance->name arguments; \
-        } \
+            return_value = mock_zlib_instance->api_name mock_arguments; \
         else \
-        { \
-            return_value = delegate_real_##name arguments; \
-        } \
-        trace_result(__func__, return_value); \
+            return_value = delegate_real_##api_name mock_arguments; \
+        trace_result(#api_name, caller_file, caller_line, caller_function, return_value); \
         return return_value; \
     }
 
-#define MOCK_ZLIB_VOID(return_type, name, parameters, arguments, matchers) \
-    return_type delegate_real_##name parameters \
+#define MOCK_ZLIB_VOID(return_type, original_name, api_name, parameters, arguments, mock_parameters, mock_arguments, matchers) \
+    return_type delegate_real_##api_name mock_parameters \
     { \
-        static auto real_fn = reinterpret_cast<decltype(&name)>(resolveSharedSymbolOrExit(kLibZlibName, #name)); \
+        (void)caller_file; \
+        (void)caller_line; \
+        (void)caller_function; \
+        static auto real_fn = reinterpret_cast<decltype(&api_name)>(resolveSharedSymbolOrExit(kLibZlibName, #api_name)); \
         real_fn arguments; \
     } \
-    MOCK_ZLIB_IMPL(return_type, name, MOCK_ZLIB_EXPAND parameters) \
+    MOCK_ZLIB_IMPL(return_type, api_name, MOCK_ZLIB_EXPAND parameters) \
+    { \
+        const char *caller_file = "<unknown>"; \
+        const int caller_line = 0; \
+        const char *caller_function = "<unknown>"; \
+        mock_##api_name mock_arguments; \
+    } \
+    extern "C" return_type mock_##api_name mock_parameters \
     { \
         if (mock_zlib_instance != nullptr) \
-        { \
-            mock_zlib_instance->name arguments; \
-        } \
+            mock_zlib_instance->api_name mock_arguments; \
         else \
-        { \
-            delegate_real_##name arguments; \
-        } \
-        trace_void(__func__); \
+            delegate_real_##api_name mock_arguments; \
+        trace_void(#api_name, caller_file, caller_line, caller_function); \
     }
 
 #include <mock_zlib_api_table.h>
@@ -104,10 +119,10 @@ void trace_void(const char *func)
 
 Mock_zlib::Mock_zlib()
 {
-#define MOCK_ZLIB_RET(return_type, name, parameters, arguments, matchers) \
-    ON_CALL(*this, name matchers).WillByDefault(Invoke(delegate_real_##name));
-#define MOCK_ZLIB_VOID(return_type, name, parameters, arguments, matchers) \
-    ON_CALL(*this, name matchers).WillByDefault(Invoke(delegate_real_##name));
+#define MOCK_ZLIB_RET(return_type, original_name, api_name, parameters, arguments, mock_parameters, mock_arguments, matchers) \
+    ON_CALL(*this, api_name matchers).WillByDefault(Invoke(delegate_real_##api_name));
+#define MOCK_ZLIB_VOID(return_type, original_name, api_name, parameters, arguments, mock_parameters, mock_arguments, matchers) \
+    ON_CALL(*this, api_name matchers).WillByDefault(Invoke(delegate_real_##api_name));
 #include <mock_zlib_api_table.h>
 #undef MOCK_ZLIB_VOID
 #undef MOCK_ZLIB_RET

@@ -3,6 +3,12 @@
 TARGET := zlib_app
 LIB_TYPE = shared
 ifdef PLATFORM_WINDOWS
+    CFLAGS += /FI"$(MYAPP_DIR)/prod/include_internal/zlib_app_namespace.h"
+else
+    CFLAGS += -include "$(MYAPP_DIR)/prod/include_internal/zlib_app_namespace.h"
+    LDFLAGS += -Wl,-soname,libzlib_app.so
+endif
+ifdef PLATFORM_WINDOWS
     # zutil.h / gzguts.h が ZLIB_INTERNAL を定義する。
     # see: https://github.com/madler/zlib/blob/v1.4/zconf.h
     DEFINES += ZLIB_DLL

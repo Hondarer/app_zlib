@@ -6,6 +6,14 @@
 [zlib](https://zlib.net/) を makefw でビルドするためのラッパーを提供します。  
 c-modernization-kit のワークスペース内 (`framework/makefw` 等と組み合わせた make ビルド環境) で利用することを前提としたアプリであり、本ディレクトリ単体ではビルドできません。
 
+## 固有の公開 API 名で OS のライブラリと分離します
+
+OS の同名ライブラリと同じプロセスで関数解決が混ざることを防ぐため、公開関数・変数と関数呼び出しマクロに `zlib_app_` を付けます。  
+たとえば `compress` の利用側は `zlib_app_compress` を呼び出します。  
+型名、定数、構造体フィールドは配布ライブラリの定義を使います。  
+旧名の alias と mock ラッパーは提供しないため、既存の利用側はソースを更新して再ビルド・再リンクしてください。  
+`dlsym()` と `GetProcAddress()` に渡す文字列も固有名へ変更します。
+
 ## 提供する機能
 
 zlib 1.4 の圧縮・展開、チェックサム、gzip ファイル API を取り込みます。  
@@ -20,7 +28,7 @@ Table: 環境別の zlib 共有ライブラリとリンク指定
 
 静的な実ライブラリは生成しません。  
 OS にインストールされた `libz` や `zlib1.dll` の置き換えは行いません。  
-公開 API と型は upstream の `<zlib.h>` と `<zconf.h>` を使います。  
+公開ヘッダーは `<zlib.h>` と `<zconf.h>` を使い、公開 API 名に固有の接頭辞を付けます。  
 Windows の DLL 本体にだけ `ZLIB_DLL` を指定します。  
 利用側では未定義のまま import library でリンクでき、`ZLIB_WINAPI` は定義しません。
 
@@ -52,13 +60,24 @@ app の追加後は `make sync-app-env` で更新します。
 
 ## API モック
 
+テスト対象ソースを `TEST_SRCS` に指定し、mock をリンクするテストの `makepart.mk` に `DEFINES += MOCK_ZLIB_ENABLE_CALLER` を追加します。  
+これにより呼び出し元情報の注入を有効にし、実ライブラリを使うテストには注入しません。
+
+mock の宣言と注入マクロは API 表から生成し、mock ライブラリのビルド前に自動更新します。  
+生成済みの `test/include/mock_zlib_overrides.h` は直接編集せず、通常 API 表と、可変長 API がある場合は専用の可変長 API 表を変更してください。
+
+通常の API 呼び出しは差し替えヘッダーを通し、mock の先頭 3 引数へ呼び出し元のファイル名、行番号、関数名を渡します。  
+`EXPECT_CALL` と `ON_CALL` でも、この 3 引数を実 API の引数より先に指定します。  
+新しい固有名の関数アドレスを取得して関数ポインター経由で呼び出す場合も mock に到達しますが、呼び出し元は取得できないため、ファイル名と関数名は `"<unknown>"`、行番号は `0` になります。  
+実委譲は app の固有シンボルだけを解決し、OS 側の旧名へ戻す探索は行いません。
+
 単体テストでは `<mock_zlib.h>` と `LIBS += mock_zlib` を使用します。  
 モックを生成しない場合と、個別の動作を設定していない場合は、`libzlib_app` の実関数へ委譲します。  
 実ライブラリのロードとシンボル解決に失敗すると、理由を標準エラーへ出力して終了します。
 
 ```cpp
 NiceMock<Mock_zlib> mock_zlib;
-EXPECT_CALL(mock_zlib, compress(_, _, _, _)).WillOnce(Return(Z_MEM_ERROR));
+EXPECT_CALL(mock_zlib, zlib_app_compress(_, _, _, _, _, _, _)).WillOnce(Return(Z_MEM_ERROR));
 ```
 
 実ライブラリとモックを同時にリンクしないでください。  
@@ -71,22 +90,23 @@ Windows ではモック本体と利用側の `ZLIB_DLL` を未定義にします
 
 | 呼び出し | モック対象 |
 |---|---|
-| `deflateInit`、`deflateInit2` | `deflateInit_`、`deflateInit2_` |
-| `inflateInit`、`inflateInit2`、`inflateBackInit` | 末尾に `_` が付く実関数 |
-| `gzprintf` | `gzvprintf` (書式文字列と `va_list`) |
-| `gzgetc` | 実関数 `gzgetc`。モック ヘッダー内で同名マクロを解除 |
+| `zlib_app_deflateInit`、`zlib_app_deflateInit2` | `zlib_app_deflateInit_`、`zlib_app_deflateInit2_` |
+| `zlib_app_inflateInit`、`zlib_app_inflateInit2`、`zlib_app_inflateBackInit` | 末尾に `_` が付く実関数 |
+| `zlib_app_zlib_version` | `zlib_app_zlibVersion`。オブジェクト形式の呼び出しマクロ |
+| `zlib_app_gzprintf` | `zlib_app_gzvprintf` (書式文字列と `va_list`) |
+| `zlib_app_gzgetc` | 実関数 `zlib_app_gzgetc`。モック ヘッダー内で同名マクロを解除 |
 
 Table: zlib マクロ呼び出しとモック対象関数の対応一覧
 
-テスト対象ソースが通常の `<zlib.h>` でコンパイルされた場合、`gzgetc` マクロは公開構造体を直接読み書きすることがあります。  
+テスト対象ソースが通常の `<zlib.h>` でコンパイルされた場合、`zlib_app_gzgetc` マクロは公開構造体を直接読み書きすることがあります。  
 関数モックだけでその処理全体を差し替えることはできません。  
-関数として呼び出す必要がある場合は `(gzgetc)(file)` と記述します。
+関数として呼び出す必要がある場合は `(zlib_app_gzgetc)(file)` と記述します。
 
 Linux では `_LARGEFILE64_SOURCE=1` を指定し、64-bit offset API を含めて検証します。  
 Windows のモックでは、本体がエクスポートする同 API の宣言を補います。  
 Windows の通常 API も 64-bit offset を維持するため、公開ヘッダーへの [パッチ](patches/README.md#0002-windows-64-bit-offsetpatch) で `z_off_t` を `long long` にします。  
 DLL、利用側、モックで同じヘッダーを使用し、`_FILE_OFFSET_BITS=64` による関数名の置換は使用しません。  
-Windows 専用の `gzopen_w` は Windows の API 表と網羅テストだけに含めます。  
+Windows 専用の `zlib_app_gzopen_w` は Windows の API 表と網羅テストだけに含めます。  
 `Z_PREFIX`、`Z_SOLO`、呼び出し規約の変更はこの構成の対象外です。
 
 ## テスト
