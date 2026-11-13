@@ -221,7 +221,7 @@ TEST_F(zlibTest, file_offsets_beyond_32_bits)
 {
     // Arrange
     std::ofstream seed("zlib_roundtrip_test.gz", std::ios::binary);
-    ASSERT_TRUE(seed.is_open());                      // [状態確認] - 入力ファイルを作成できること。
+    ASSERT_TRUE(seed.is_open());                        // [状態確認] - 入力ファイルを作成できること。
     ASSERT_TRUE(static_cast<bool>(seed.write("x", 1))); // [状態確認] - 非圧縮データを 1 byte 書き込めること。
     seed.close();
     std::unique_ptr<gzFile_s, decltype(&gzclose)> file(gzopen("zlib_roundtrip_test.gz", "rb"), &gzclose);
